@@ -2,10 +2,13 @@ package com.example.app_movil.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Colores principales extraídos de la identidad visual de CORPALIV y Alba Lab
+val CorpalivPurple = Color(0xFF5B4596)      // Morado institucional principal (botones y barras)
+val CorpalivPink = Color(0xFFE63B7A)        // Rosa/Magenta del logo (elementos destacados)
+val CorpalivGreen = Color(0xFF008A5E)       // Verde del logo (etiquetas de impacto social y precios)
+val CorpalivYellow = Color(0xFFF7B500)      // Amarillo del logo (detalles secundarios)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Colores de fondo para que las tarjetas destaquen sobre la pantalla
+val CorpalivBackground = Color(0xFFF8F7FC)  // Blanco suave con un leve tono lavanda
+val CorpalivSurface = Color(0xFFFFFFFF)     // Blanco puro para el interior de las tarjetas
+val CorpalivPurpleLight = Color(0xFFEDE7F6) // Morado muy claro para fondos de tarjetas informativas
