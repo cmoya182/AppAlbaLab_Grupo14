@@ -223,4 +223,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun onCategoriaSeleccionada(categoria: String) {
         categoriaSeleccionada = categoria
     }
+// --- SIMULADOR DE IMPACTO SOCIAL (APORTE CORPORATIVO) ---
+
+    var montoSimulado by mutableStateOf("")
+        private set
+
+    var montoSimuladoError by mutableStateOf<String?>(null)
+        private set
+
+    var resultadoImpacto by mutableStateOf<String?>(null)
+        private set
+
+    // Valida el monto ingresado y calcula cuántos kits de taller financia el aporte
+    fun onMontoSimuladoChange(nuevoMonto: String) {
+        montoSimulado = nuevoMonto
+        resultadoImpacto = null
+
+        if (nuevoMonto.isEmpty()) {
+            montoSimuladoError = null
+            return
+        }
+
+        if (!nuevoMonto.all { it.isDigit() }) {
+            montoSimuladoError = "Ingrese únicamente números sin puntos ni símbolos."
+        } else {
+            val valor = nuevoMonto.toLongOrNull() ?: 0L
+            if (valor < 5000) {
+                montoSimuladoError = "El aporte mínimo para simulación es de $5.000 CLP."
+            } else {
+                montoSimuladoError = null
+            }
+        }
+    }
+
+    // Ejecuta el cálculo de impacto social para mostrarlo en la interfaz
+    fun calcularImpactoSocial() {
+        val valor = montoSimulado.toLongOrNull()
+        if (valor == null || valor < 5000) {
+            montoSimuladoError = "Ingrese un monto válido igual o superior a $5.000 CLP."
+            resultadoImpacto = null
+        } else {
+            val insumosTaller = (valor / 5000).toInt()
+            val horasTerapia = (valor / 15000).toInt()
+            resultadoImpacto = "Con un aporte de $$valor CLP financias aproximadamente $insumosTaller kits de insumos para el taller laboral" +
+                    if (horasTerapia > 0) " y $horasTerapia sesiones de apoyo sociolaboral." else "."
+        }
+    }
 }

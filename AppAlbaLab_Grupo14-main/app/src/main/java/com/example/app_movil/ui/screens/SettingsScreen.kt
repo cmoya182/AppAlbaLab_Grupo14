@@ -1,11 +1,18 @@
 package com.example.app_movil.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
@@ -13,11 +20,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.app_movil.viewmodels.MainViewModel
 
-// Pantalla de configuración, accesibilidad e información técnica del proyecto
+// Pantalla de configuración institucional, simulador de impacto social y administración de datos
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -30,7 +38,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Configuración y Datos", fontWeight = FontWeight.Bold) },
+                title = { Text("Impacto y Configuración", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.navigateBack() }) {
                         Icon(
@@ -54,6 +62,7 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(scrollState)
         ) {
+            // Tarjeta de información institucional
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
@@ -70,7 +79,7 @@ fun SettingsScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Aplicación oficial orientada a la inclusión social y laboral de personas con discapacidad múltiple y retos múltiples.",
+                        text = "Iniciativa oficial orientada a la inclusión social y laboral de jóvenes y adultos con discapacidad múltiple y sordoceguera.",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -84,6 +93,91 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Sección: Simulador de Impacto Social
+            Text(
+                text = "Simulador de Impacto Social",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Descubre cómo tu aporte o compra corporativa se transforma en materiales y apoyo directo para nuestros talleres:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = viewModel.montoSimulado,
+                        onValueChange = { viewModel.onMontoSimuladoChange(it) },
+                        label = { Text("Monto en CLP (Ej: 25000)") },
+                        leadingIcon = { Icon(Icons.Default.Calculate, contentDescription = null) },
+                        trailingIcon = {
+                            if (viewModel.montoSimuladoError != null) {
+                                Icon(Icons.Default.Error, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        isError = viewModel.montoSimuladoError != null,
+                        supportingText = {
+                            if (viewModel.montoSimuladoError != null) {
+                                Text(text = viewModel.montoSimuladoError!!, color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = { viewModel.calcularImpactoSocial() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Calcular Impacto del Aporte")
+                    }
+
+                    // Muestra el resultado con animación fluida
+                    AnimatedVisibility(
+                        visible = viewModel.resultadoImpacto != null,
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                            )
+                        ) {
+                            Text(
+                                text = viewModel.resultadoImpacto ?: "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Sección: Administración de Base de Datos Local
             Text(
                 text = "Gestión de Datos Locales (Room SQLite)",
                 style = MaterialTheme.typography.titleSmall,
