@@ -1,77 +1,116 @@
 package com.example.app_movil.ui.components
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.app_movil.model.Producto
 
-// Componente reutilizable que dibuja la tarjeta visual de un producto del catálogo
+// Tarjeta interactiva con animación de expansión funcional para ver detalles del producto
 @Composable
-fun ProductoItem(producto: Producto) {
+fun ProductoItem(
+    producto: Producto,
+    onCotizarClick: () -> Unit = {}
+) {
+    var expandido by remember { mutableStateOf(false) }
+
     Card(
-        // Ocupa todo el ancho disponible y deja un margen exterior entre cada tarjeta
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        // Define el color de fondo blanco y una sombra de 4dp para resaltar la tarjeta
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+            .clickable { expandido = !expandido },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
-        // Organiza el ícono a la izquierda y los datos del producto al centro/derecha
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Contenedor pequeño con fondo morado claro para el ícono del producto
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.size(56.dp)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingBag,
+                            contentDescription = "Icono de producto",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = producto.nombre,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Aporte: $${producto.precio}",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+
+                IconButton(onClick = { expandido = !expandido }) {
                     Icon(
-                        imageVector = Icons.Default.ShoppingBag,
-                        contentDescription = "Ícono de producto",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
+                        imageVector = if (expandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expandido) "Ver menos" else "Ver más"
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            if (expandido) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Columna con el nombre, descripción y precio del producto
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = producto.nombre,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = producto.descripcion,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                // Destaca el precio con el color terciario (verde institucional)
+
+                Spacer(modifier = Modifier.height(6.dp))
+
                 Text(
-                    text = "Aporte: $${producto.precio}",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.tertiary
+                    text = "Elaborado artesanalmente en los talleres laborales de CORPALIV por jóvenes con sordoceguera y retos múltiples.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
                 )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Button(
+                    onClick = onCotizarClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Solicitar o Consultar por este Producto")
+                }
             }
         }
     }

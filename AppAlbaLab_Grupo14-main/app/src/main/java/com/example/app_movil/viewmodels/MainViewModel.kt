@@ -30,6 +30,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     private val solicitudDao = database.solicitudDao()
 
+    // Flujo de datos reactivo con la lista de solicitudes desde Room
     val listaSolicitudes: StateFlow<List<SolicitudEntity>> = solicitudDao
         .obtenerTodasLasSolicitudes()
         .stateIn(
@@ -81,13 +82,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var mensajeError by mutableStateOf<String?>(null)
         private set
 
-    // --- ESTADO DE RECURSOS NATIVOS (IMÁGENES) ---
-
-    // Guarda la imagen obtenida desde la galería del dispositivo
     var imagenUri by mutableStateOf<Uri?>(null)
         private set
 
-    // Guarda la foto capturada en tiempo real con la cámara
     var fotoBitmap by mutableStateOf<Bitmap?>(null)
         private set
 
@@ -114,19 +111,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (mensajeError != null) mensajeError = null
     }
 
-    // Actualiza la imagen seleccionada desde la galería
     fun onImagenSeleccionada(uri: Uri?) {
         imagenUri = uri
-        fotoBitmap = null // Si selecciona de galería, quita la foto de la cámara
+        fotoBitmap = null
     }
 
-    // Actualiza la foto capturada con la cámara
     fun onFotoCapturada(bitmap: Bitmap?) {
         fotoBitmap = bitmap
-        imagenUri = null // Si toma foto de cámara, quita la de la galería
+        imagenUri = null
     }
 
-    // Elimina la imagen actual para permitir cargar otra
     fun eliminarImagen() {
         imagenUri = null
         fotoBitmap = null
@@ -183,5 +177,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         telefono = ""
         mensaje = ""
         eliminarImagen()
+    }
+
+    // Elimina una solicitud puntual por ID
+    fun eliminarSolicitudPorId(id: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            solicitudDao.eliminarSolicitudPorId(id)
+        }
+    }
+
+    // Vacía toda la tabla en Room
+    fun limpiarHistorialSolicitudes() {
+        viewModelScope.launch(Dispatchers.IO) {
+            solicitudDao.eliminarTodasLasSolicitudes()
+        }
+    }
+
+    // --- ESTADO DE BÚSQUEDA Y FILTRADO DEL CATÁLOGO ---
+
+    var queryBusqueda by mutableStateOf("")
+        private set
+
+    var busquedaError by mutableStateOf<String?>(null)
+        private set
+
+    var categoriaSeleccionada by mutableStateOf("Todos")
+        private set
+
+    // Actualiza la búsqueda y valida que no incluya caracteres inválidos
+    fun onQueryBusquedaChange(nuevoTexto: String) {
+        queryBusqueda = nuevoTexto
+        val regexValido = "^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]*$".toRegex()
+        busquedaError = if (!nuevoTexto.matches(regexValido)) {
+            "No se permiten caracteres especiales en la búsqueda."
+        } else {
+            null
+        }
+    }
+
+    fun limpiarBusqueda() {
+        queryBusqueda = ""
+        busquedaError = null
+    }
+
+    fun onCategoriaSeleccionada(categoria: String) {
+        categoriaSeleccionada = categoria
     }
 }

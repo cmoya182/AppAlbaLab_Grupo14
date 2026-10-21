@@ -6,16 +6,23 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
-// Objeto de Acceso a Datos (DAO) para interactuar con la base de datos Room
+// Objeto de Acceso a Datos (DAO) para la persistencia de solicitudes en Room
 @Dao
 interface SolicitudDao {
 
-    // Inserta la solicitud en la base de datos y retorna el identificador autogenerado (Long).
-    // Se define como función síncrona para compatibilidad con KSP2; se ejecuta en segundo plano con Dispatchers.IO.
+    // Inserta una nueva solicitud en la base de datos
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertarSolicitud(solicitud: SolicitudEntity): Long
 
-    // Consulta reactiva que retorna la lista completa de solicitudes ordenadas por ID descendente
+    // Retorna el flujo continuo con todas las solicitudes registradas ordenadas por id descendente
     @Query("SELECT * FROM solicitudes_vinculacion ORDER BY id DESC")
     fun obtenerTodasLasSolicitudes(): Flow<List<SolicitudEntity>>
+
+    // Elimina una solicitud específica mediante su clave primaria
+    @Query("DELETE FROM solicitudes_vinculacion WHERE id = :id")
+    fun eliminarSolicitudPorId(id: Int)
+
+    // Elimina todas las solicitudes registradas (vaciado total)
+    @Query("DELETE FROM solicitudes_vinculacion")
+    fun eliminarTodasLasSolicitudes()
 }

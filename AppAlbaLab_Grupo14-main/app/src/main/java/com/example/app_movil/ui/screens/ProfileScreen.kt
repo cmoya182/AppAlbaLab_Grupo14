@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -21,7 +22,6 @@ import androidx.navigation.NavController
 import com.example.app_movil.navigation.Screen
 import com.example.app_movil.viewmodels.MainViewModel
 
-// Pantalla que muestra el perfil institucional y el historial de solicitudes persistidas en Room
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -30,8 +30,6 @@ fun ProfileScreen(
 ) {
     val items = listOf(Screen.Home, Screen.Profile, Screen.Settings)
     var selectedItem by remember { mutableIntStateOf(1) }
-
-    // Observa la lista de solicitudes guardadas en la base de datos local
     val solicitudes by viewModel.listaSolicitudes.collectAsState()
 
     Scaffold(
@@ -80,7 +78,6 @@ fun ProfileScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Sección de encabezado con los datos del grupo y el proyecto
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -114,7 +111,6 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Título de la sección de solicitudes almacenadas
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -129,7 +125,6 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Mensaje en caso de que la base de datos aún no contenga registros
                 if (solicitudes.isEmpty()) {
                     Text(
                         text = "No hay solicitudes registradas aún. Los envíos del Formulario de Vinculación se almacenarán aquí.",
@@ -140,7 +135,6 @@ fun ProfileScreen(
                 }
             }
 
-            // Dibuja una tarjeta por cada solicitud recuperada desde la base de datos Room
             items(solicitudes) { solicitud ->
                 Card(
                     modifier = Modifier
@@ -152,19 +146,36 @@ fun ProfileScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Business,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = solicitud.nombre,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Business,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = solicitud.nombre,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            // Botón de eliminación individual de la solicitud en Room
+                            IconButton(
+                                onClick = { viewModel.eliminarSolicitudPorId(solicitud.id) },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Eliminar solicitud",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
