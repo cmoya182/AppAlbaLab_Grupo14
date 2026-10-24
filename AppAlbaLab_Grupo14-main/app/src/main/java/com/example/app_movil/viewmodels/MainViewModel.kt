@@ -24,7 +24,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// ViewModel central que gestiona estado, validaciones desacopladas, persistencia en Room y multimedia
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = AppDatabase.getDatabase(application)
@@ -59,7 +58,83 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- ESTADO DEL FORMULARIO DE VINCULACIÓN ADAPTATIVO ---
+    // --- MÓDULO DE AUTENTICACIÓN / LOGIN ---
+
+    var estaAutenticado by mutableStateOf(false)
+        private set
+
+    var usuarioLogueado by mutableStateOf<String?>(null)
+        private set
+
+    var loginEmail by mutableStateOf("")
+        private set
+    var loginEmailError by mutableStateOf<String?>(null)
+        private set
+
+    var loginPassword by mutableStateOf("")
+        private set
+    var loginPasswordError by mutableStateOf<String?>(null)
+        private set
+
+    var passwordVisible by mutableStateOf(false)
+        private set
+
+    fun onLoginEmailChange(nuevoEmail: String) {
+        loginEmail = nuevoEmail
+        if (loginEmailError != null) loginEmailError = null
+    }
+
+    fun onLoginPasswordChange(nuevaClave: String) {
+        loginPassword = nuevaClave
+        if (loginPasswordError != null) loginPasswordError = null
+    }
+
+    fun togglePasswordVisibility() {
+        passwordVisible = !passwordVisible
+    }
+
+    fun iniciarSesion() {
+        var esValido = true
+
+        val regexEmail = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$".toRegex()
+        if (!loginEmail.trim().matches(regexEmail)) {
+            loginEmailError = "Ingrese un correo institucional válido (@corpaliv.cl)."
+            esValido = false
+        }
+
+        if (loginPassword.length < 6) {
+            loginPasswordError = "La contraseña debe contener al menos 6 caracteres."
+            esValido = false
+        }
+
+        if (esValido) {
+            if (loginEmail.trim().equals("admin@corpaliv.cl", ignoreCase = true) && loginPassword == "albalab2026") {
+                estaAutenticado = true
+                usuarioLogueado = "Equipo Vinculación CORPALIV"
+                loginEmail = ""
+                loginPassword = ""
+                // Entra a la pantalla de inicio con sesión iniciada
+                navigateTo(Screen.Home)
+            } else {
+                loginPasswordError = "Credenciales incorrectas (Demo: admin@corpaliv.cl / albalab2026)."
+            }
+        }
+    }
+
+    fun ingresarComoInvitado() {
+        estaAutenticado = false
+        usuarioLogueado = null
+        navigateTo(Screen.Home)
+    }
+
+    fun cerrarSesion() {
+        estaAutenticado = false
+        usuarioLogueado = null
+        // Vuelve a la pantalla de login
+        navigateTo(Screen.Login)
+    }
+
+    // --- FORMULARIO DE VINCULACIÓN ADAPTATIVO ---
 
     var tipoContactoSeleccionado by mutableStateOf("Empresa")
         private set
@@ -131,12 +206,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         fotoBitmap = null
     }
 
-    // Validación desacoplada según el tipo de contacto seleccionado
     fun enviarFormulario() {
         var esValido = true
 
-        val minCaracteresNombre = if (tipoContactoSeleccionado == "Empresa") 4 else 3
-        if (nombre.trim().length < minCaracteresNombre) {
+        val minNombre = if (tipoContactoSeleccionado == "Empresa") 4 else 3
+        if (nombre.trim().length < minNombre) {
             nombreError = if (tipoContactoSeleccionado == "Empresa") {
                 "Ingrese razón social o empresa válida (mínimo 4 caracteres)."
             } else {
@@ -159,9 +233,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val minMensaje = if (tipoContactoSeleccionado == "Compra Solidaria") 5 else 10
         if (mensaje.trim().length < minMensaje) {
             mensajeError = when (tipoContactoSeleccionado) {
-                "Empresa" -> "Detalle la propuesta de alianza o requerimiento corporativo (mínimo 10 caracteres)."
-                "Compra Solidaria" -> "Indique los productos o cantidades que desea cotizar (mínimo 5 caracteres)."
-                else -> "Detalle su disponibilidad horaria o área de voluntariado (mínimo 10 caracteres)."
+                "Empresa" -> "Detalle de propuesta corporativa o requerimiento (mínimo 10 caracteres)."
+                "Compra Solidaria" -> "Indique los productos o cantidades a cotizar (mínimo 5 caracteres)."
+                else -> "Disponibilidad horaria y motivación para voluntariado (mínimo 10 caracteres)."
             }
             esValido = false
         }

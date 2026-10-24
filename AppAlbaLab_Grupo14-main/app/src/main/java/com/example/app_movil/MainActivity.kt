@@ -13,16 +13,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.app_movil.navigation.NavigationEvent
 import com.example.app_movil.navigation.Screen
-import com.example.app_movil.ui.screens.CatalogoScreen
-import com.example.app_movil.ui.screens.ContactoScreen
-import com.example.app_movil.ui.screens.HomeScreen
-import com.example.app_movil.ui.screens.ProfileScreen
-import com.example.app_movil.ui.screens.SettingsScreen
+import com.example.app_movil.ui.screens.*
 import com.example.app_movil.ui.theme.APP_MOVILTheme
 import com.example.app_movil.viewmodels.MainViewModel
 import kotlinx.coroutines.flow.collectLatest
 
-// Actividad principal donde se inicia la aplicación y se monta la navegación
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,15 +47,17 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     NavHost(
                         navController = navController,
-                        startDestination = Screen.Home.route
+                        startDestination = Screen.Login.route // Inicia directamente en el Login
                     ) {
+                        composable(route = Screen.Login.route) {
+                            LoginScreen(viewModel = viewModel)
+                        }
                         composable(route = Screen.Home.route) {
                             HomeScreen(navController = navController, viewModel = viewModel)
                         }
                         composable(route = Screen.Catalogo.route) {
                             CatalogoScreen(viewModel = viewModel)
                         }
-                        // Registra la pantalla del formulario de vinculación
                         composable(route = Screen.Contacto.route) {
                             ContactoScreen(viewModel = viewModel)
                         }
