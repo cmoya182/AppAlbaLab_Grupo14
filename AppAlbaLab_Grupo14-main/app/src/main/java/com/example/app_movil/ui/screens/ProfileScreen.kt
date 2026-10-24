@@ -3,15 +3,9 @@ package com.example.app_movil.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -116,7 +110,7 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Solicitudes en Base de Datos (${solicitudes.size})",
+                        text = "Solicitudes Recibidas (${solicitudes.size})",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -127,7 +121,7 @@ fun ProfileScreen(
 
                 if (solicitudes.isEmpty()) {
                     Text(
-                        text = "No hay solicitudes registradas aún. Los envíos del Formulario de Vinculación se almacenarán aquí.",
+                        text = "No hay solicitudes registradas por el momento.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 16.dp)
@@ -151,21 +145,19 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Business,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
                                 Text(
-                                    text = solicitud.nombre,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
+                                    text = solicitud.tipoContacto,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
                             }
-                            // Botón de eliminación individual de la solicitud en Room
+
                             IconButton(
                                 onClick = { viewModel.eliminarSolicitudPorId(solicitud.id) },
                                 modifier = Modifier.size(24.dp)
@@ -179,6 +171,12 @@ fun ProfileScreen(
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = solicitud.nombre,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -211,12 +209,10 @@ fun ProfileScreen(
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
-
                         Text(
                             text = "Propuesta: ${solicitud.mensaje}",
                             style = MaterialTheme.typography.bodyMedium
                         )
-
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Row(
@@ -233,7 +229,7 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = solicitud.fecha,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

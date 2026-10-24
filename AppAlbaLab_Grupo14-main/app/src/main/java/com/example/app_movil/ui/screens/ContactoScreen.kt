@@ -17,15 +17,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,14 +33,13 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.app_movil.viewmodels.MainViewModel
 
-// Dibuja la pantalla del formulario de vinculación con validaciones, recursos nativos y animación
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactoScreen(viewModel: MainViewModel) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
+    val tiposContacto = listOf("Empresa", "Compra Solidaria", "Voluntariado")
 
-    // Recurso Nativo 1: Abre la galería y convierte la imagen seleccionada a Bitmap de forma nativa
     val galeriaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -62,14 +54,12 @@ fun ContactoScreen(viewModel: MainViewModel) {
         }
     }
 
-    // Recurso Nativo 2: Abre la cámara para capturar una fotografía en vivo
     val camaraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         viewModel.onFotoCapturada(bitmap)
     }
 
-    // Solicita el permiso de cámara al usuario si aún no está otorgado
     val permisoCamaraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { fueAceptado ->
@@ -86,7 +76,7 @@ fun ContactoScreen(viewModel: MainViewModel) {
                     IconButton(onClick = { viewModel.navigateBack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver a la pantalla anterior"
+                            contentDescription = "Volver"
                         )
                     }
                 },
@@ -105,28 +95,46 @@ fun ContactoScreen(viewModel: MainViewModel) {
                 .padding(16.dp)
                 .verticalScroll(scrollState)
         ) {
-            Card(
+            Text(
+                text = "Tipo de Solicitud:",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "Complete este formulario para solicitar convenios de inclusión laboral, donaciones o compras corporativas con Alba Lab.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(14.dp)
-                )
+                tiposContacto.forEach { tipo ->
+                    FilterChip(
+                        selected = viewModel.tipoContactoSeleccionado == tipo,
+                        onClick = { viewModel.onTipoContactoSeleccionado(tipo) },
+                        label = { Text(tipo) }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo 1: Nombre o Razón Social
+            val labelNombre = when (viewModel.tipoContactoSeleccionado) {
+                "Empresa" -> "Razón Social o Nombre de Empresa *"
+                "Compra Solidaria" -> "Nombre de Contacto Particular *"
+                else -> "Nombre Completo del Postulante *"
+            }
+
             OutlinedTextField(
                 value = viewModel.nombre,
                 onValueChange = { viewModel.onNombreChange(it) },
-                label = { Text("Nombre o Empresa *") },
-                leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
+                label = { Text(labelNombre) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (viewModel.tipoContactoSeleccionado == "Empresa") Icons.Default.Business else Icons.Default.Person,
+                        contentDescription = null
+                    )
+                },
                 isError = viewModel.nombreError != null,
                 supportingText = {
                     if (viewModel.nombreError != null) {
@@ -135,7 +143,7 @@ fun ContactoScreen(viewModel: MainViewModel) {
                 },
                 trailingIcon = {
                     if (viewModel.nombreError != null) {
-                        Icon(Icons.Default.Error, contentDescription = "Dato erróneo", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Error, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
                     }
                 },
                 singleLine = true,
@@ -144,11 +152,10 @@ fun ContactoScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Campo 2: Correo electrónico
             OutlinedTextField(
                 value = viewModel.correo,
                 onValueChange = { viewModel.onCorreoChange(it) },
-                label = { Text("Correo Electrónico *") },
+                label = { Text("Correo Electrónico de Contacto *") },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 isError = viewModel.correoError != null,
@@ -159,7 +166,7 @@ fun ContactoScreen(viewModel: MainViewModel) {
                 },
                 trailingIcon = {
                     if (viewModel.correoError != null) {
-                        Icon(Icons.Default.Error, contentDescription = "Dato erróneo", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Error, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
                     }
                 },
                 singleLine = true,
@@ -168,11 +175,10 @@ fun ContactoScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Campo 3: Teléfono de contacto
             OutlinedTextField(
                 value = viewModel.telefono,
                 onValueChange = { viewModel.onTelefonoChange(it) },
-                label = { Text("Teléfono de Contacto *") },
+                label = { Text("Teléfono de Contacto (Ej: +56912345678) *") },
                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 isError = viewModel.telefonoError != null,
@@ -183,7 +189,7 @@ fun ContactoScreen(viewModel: MainViewModel) {
                 },
                 trailingIcon = {
                     if (viewModel.telefonoError != null) {
-                        Icon(Icons.Default.Error, contentDescription = "Dato erróneo", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Error, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
                     }
                 },
                 singleLine = true,
@@ -192,12 +198,17 @@ fun ContactoScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Campo 4: Mensaje o propuesta
+            val labelMensaje = when (viewModel.tipoContactoSeleccionado) {
+                "Empresa" -> "Detalle de propuesta corporativa o requerimiento *"
+                "Compra Solidaria" -> "Productos, unidades o consultas a cotizar *"
+                else -> "Disponibilidad horaria y motivación para voluntariado *"
+            }
+
             OutlinedTextField(
                 value = viewModel.mensaje,
                 onValueChange = { viewModel.onMensajeChange(it) },
-                label = { Text("Propuesta o Consulta *") },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Message, contentDescription = null) },
+                label = { Text(labelMensaje) },
+                leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
                 isError = viewModel.mensajeError != null,
                 supportingText = {
                     if (viewModel.mensajeError != null) {
@@ -206,7 +217,7 @@ fun ContactoScreen(viewModel: MainViewModel) {
                 },
                 trailingIcon = {
                     if (viewModel.mensajeError != null) {
-                        Icon(Icons.Default.Error, contentDescription = "Dato erróneo", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Error, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
                     }
                 },
                 minLines = 3,
@@ -216,9 +227,8 @@ fun ContactoScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // SECCIÓN DE RECURSOS NATIVOS: Galería y Cámara
             Text(
-                text = "Adjuntar Respaldo o Logo (Opcional):",
+                text = "Adjuntar Respaldo o Logotipo (Opcional):",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -229,7 +239,6 @@ fun ContactoScreen(viewModel: MainViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Selector de la galería
                 OutlinedButton(
                     onClick = { galeriaLauncher.launch("image/*") },
                     modifier = Modifier.weight(1f)
@@ -239,7 +248,6 @@ fun ContactoScreen(viewModel: MainViewModel) {
                     Text("Galería")
                 }
 
-                // Disparador de la cámara
                 OutlinedButton(
                     onClick = {
                         val permiso = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
@@ -257,7 +265,6 @@ fun ContactoScreen(viewModel: MainViewModel) {
                 }
             }
 
-            // ANIMACIÓN FUNCIONAL: Muestra u oculta la foto de forma suave al adjuntarla o quitarla
             AnimatedVisibility(
                 visible = viewModel.fotoBitmap != null,
                 enter = fadeIn(),
@@ -278,7 +285,7 @@ fun ContactoScreen(viewModel: MainViewModel) {
                         viewModel.fotoBitmap?.let { bitmap ->
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Foto o logo adjunto",
+                                contentDescription = "Archivo adjunto",
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(180.dp)
@@ -289,7 +296,6 @@ fun ContactoScreen(viewModel: MainViewModel) {
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Botón para descartar la foto
                         TextButton(
                             onClick = { viewModel.eliminarImagen() },
                             colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
@@ -304,7 +310,7 @@ fun ContactoScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Botón de envío
+            // Botón con texto profesional orientado al usuario
             Button(
                 onClick = { viewModel.enviarFormulario() },
                 modifier = Modifier
@@ -313,18 +319,18 @@ fun ContactoScreen(viewModel: MainViewModel) {
             ) {
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Enviar Solicitud de Vinculación")
+                Text("Enviar Solicitud de Vinculación", fontWeight = FontWeight.Bold)
             }
         }
     }
 
-    // Diálogo de confirmación
+    // Diálogo con redacción formal e institucional
     if (viewModel.mostrarConfirmacion) {
         AlertDialog(
             onDismissRequest = { viewModel.cerrarConfirmacion() },
-            title = { Text("¡Solicitud Recibida!") },
+            title = { Text("¡Solicitud Enviada con Éxito!") },
             text = {
-                Text("Gracias por contactar a CORPALIV. El equipo de vinculación de Alba Lab revisará su propuesta y se comunicará a la brevedad.")
+                Text("Hemos recibido su solicitud de tipo '${viewModel.tipoContactoSeleccionado}'. El equipo de vinculación sociolaboral de Alba Lab revisará su propuesta y se comunicará a la brevedad.")
             },
             confirmButton = {
                 TextButton(

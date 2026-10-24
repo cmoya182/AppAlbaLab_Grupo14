@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.app_movil.viewmodels.MainViewModel
 
-// Pantalla de configuración institucional, simulador de impacto social y administración de datos
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -62,7 +61,6 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(scrollState)
         ) {
-            // Tarjeta de información institucional
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
@@ -79,7 +77,7 @@ fun SettingsScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Iniciativa oficial orientada a la inclusión social y laboral de jóvenes y adultos con discapacidad múltiple y sordoceguera.",
+                        text = "Iniciativa oficial orientada a la inclusión social y laboral de jóvenes y adultos con discapacidad múltiple y retos múltiples.",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -93,7 +91,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Sección: Simulador de Impacto Social
             Text(
                 text = "Simulador de Impacto Social",
                 style = MaterialTheme.typography.titleSmall,
@@ -110,7 +107,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Descubre cómo tu aporte o compra corporativa se transforma en materiales y apoyo directo para nuestros talleres:",
+                        text = "Descubre cómo tu aporte o compra solidaria financia insumos y talleres de inclusión:",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -149,7 +146,6 @@ fun SettingsScreen(
                         Text("Calcular Impacto del Aporte")
                     }
 
-                    // Muestra el resultado con animación fluida
                     AnimatedVisibility(
                         visible = viewModel.resultadoImpacto != null,
                         enter = fadeIn(),
@@ -177,9 +173,8 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Sección: Administración de Base de Datos Local
             Text(
-                text = "Gestión de Datos Locales (Room SQLite)",
+                text = "Administración del Historial Local",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -194,7 +189,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Permite vaciar las solicitudes almacenadas localmente para reiniciar demostraciones o pruebas de evaluación.",
+                        text = "Permite vaciar las solicitudes guardadas localmente en este dispositivo.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -206,7 +201,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Vaciar Solicitudes Almacenadas")
+                        Text("Vaciar Historial de Solicitudes")
                     }
                 }
             }
@@ -216,8 +211,8 @@ fun SettingsScreen(
     if (mostrarDialogoBorrado) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoBorrado = false },
-            title = { Text("¿Eliminar registros?") },
-            text = { Text("Esta acción eliminará todas las solicitudes guardadas en la base de datos interna Room.") },
+            title = { Text("¿Vaciar historial?") },
+            text = { Text("Esta acción eliminará todas las solicitudes almacenadas localmente en este dispositivo.") },
             confirmButton = {
                 TextButton(
                     onClick = {
