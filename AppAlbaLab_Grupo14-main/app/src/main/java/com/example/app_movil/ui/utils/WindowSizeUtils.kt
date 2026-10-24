@@ -1,16 +1,25 @@
 package com.example.app_movil.ui.utils
 
 import android.app.Activity
-import androidx.activity.compose.LocalActivity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 
-// Función reutilizable que "mide" la pantalla del dispositivo donde corre la app.
+// Busca de forma segura la Activity recorriendo los ContextWrappers
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun obtenerWindowSizeClass(): WindowSizeClass {
-    val activity = LocalActivity.current as Activity
+    val context = LocalContext.current
+    val activity = context.findActivity() ?: (context as Activity)
     return calculateWindowSizeClass(activity)
 }

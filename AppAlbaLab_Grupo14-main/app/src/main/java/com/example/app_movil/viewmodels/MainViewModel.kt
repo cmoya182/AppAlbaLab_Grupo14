@@ -24,13 +24,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// ViewModel que centraliza la navegación, validación de formularios, persistencia en Room y recursos multimedia
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = AppDatabase.getDatabase(application)
     private val solicitudDao = database.solicitudDao()
 
-    // Flujo de datos reactivo con la lista de solicitudes desde Room
     val listaSolicitudes: StateFlow<List<SolicitudEntity>> = solicitudDao
         .obtenerTodasLasSolicitudes()
         .stateIn(
@@ -60,7 +58,94 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- ESTADO DEL FORMULARIO DE VINCULACIÓN ---
+    // --- MÓDULO DE AUTENTICACIÓN / LOGIN ---
+
+    var estaAutenticado by mutableStateOf(false)
+        private set
+
+    var usuarioLogueado by mutableStateOf<String?>(null)
+        private set
+
+    var loginEmail by mutableStateOf("")
+        private set
+    var loginEmailError by mutableStateOf<String?>(null)
+        private set
+
+    var loginPassword by mutableStateOf("")
+        private set
+    var loginPasswordError by mutableStateOf<String?>(null)
+        private set
+
+    var passwordVisible by mutableStateOf(false)
+        private set
+
+    fun onLoginEmailChange(nuevoEmail: String) {
+        loginEmail = nuevoEmail
+        if (loginEmailError != null) loginEmailError = null
+    }
+
+    fun onLoginPasswordChange(nuevaClave: String) {
+        loginPassword = nuevaClave
+        if (loginPasswordError != null) loginPasswordError = null
+    }
+
+    fun togglePasswordVisibility() {
+        passwordVisible = !passwordVisible
+    }
+
+    fun iniciarSesion() {
+        var esValido = true
+
+        val regexEmail = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$".toRegex()
+        if (!loginEmail.trim().matches(regexEmail)) {
+            loginEmailError = "Ingrese un correo institucional válido (@corpaliv.cl)."
+            esValido = false
+        }
+
+        if (loginPassword.length < 6) {
+            loginPasswordError = "La contraseña debe contener al menos 6 caracteres."
+            esValido = false
+        }
+
+        if (esValido) {
+            if (loginEmail.trim().equals("admin@corpaliv.cl", ignoreCase = true) && loginPassword == "albalab2026") {
+                estaAutenticado = true
+                usuarioLogueado = "Equipo Vinculación CORPALIV"
+                loginEmail = ""
+                loginPassword = ""
+                // Entra a la pantalla de inicio con sesión iniciada
+                navigateTo(Screen.Home)
+            } else {
+                loginPasswordError = "Credenciales incorrectas (Demo: admin@corpaliv.cl / albalab2026)."
+            }
+        }
+    }
+
+    fun ingresarComoInvitado() {
+        estaAutenticado = false
+        usuarioLogueado = null
+        navigateTo(Screen.Home)
+    }
+
+    fun cerrarSesion() {
+        estaAutenticado = false
+        usuarioLogueado = null
+        // Vuelve a la pantalla de login
+        navigateTo(Screen.Login)
+    }
+
+    // --- FORMULARIO DE VINCULACIÓN ADAPTATIVO ---
+
+    var tipoContactoSeleccionado by mutableStateOf("Empresa")
+        private set
+
+    fun onTipoContactoSeleccionado(nuevoTipo: String) {
+        tipoContactoSeleccionado = nuevoTipo
+        nombreError = null
+        correoError = null
+        telefonoError = null
+        mensajeError = null
+    }
 
     var nombre by mutableStateOf("")
         private set
@@ -111,11 +196,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (mensajeError != null) mensajeError = null
     }
 
-    fun onImagenSeleccionada(uri: Uri?) {
-        imagenUri = uri
-        fotoBitmap = null
-    }
-
     fun onFotoCapturada(bitmap: Bitmap?) {
         fotoBitmap = bitmap
         imagenUri = null
@@ -129,8 +209,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun enviarFormulario() {
         var esValido = true
 
-        if (nombre.trim().length < 3) {
-            nombreError = "El nombre o empresa debe tener al menos 3 caracteres."
+        val minNombre = if (tipoContactoSeleccionado == "Empresa") 4 else 3
+        if (nombre.trim().length < minNombre) {
+            nombreError = if (tipoContactoSeleccionado == "Empresa") {
+                "Ingrese razón social o empresa válida (mínimo 4 caracteres)."
+            } else {
+                "El nombre completo debe tener al menos 3 caracteres."
+            }
             esValido = false
         }
 
@@ -141,12 +226,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         if (telefono.trim().length < 8 || !telefono.all { it.isDigit() || it == '+' }) {
-            telefonoError = "Ingrese un número telefónico válido de al menos 8 dígitos."
+            telefonoError = "Ingrese un número telefónico válido (mínimo 8 dígitos)."
             esValido = false
         }
 
-        if (mensaje.trim().length < 10) {
-            mensajeError = "Por favor detalle su propuesta o consulta (mínimo 10 caracteres)."
+        val minMensaje = if (tipoContactoSeleccionado == "Compra Solidaria") 5 else 10
+        if (mensaje.trim().length < minMensaje) {
+            mensajeError = when (tipoContactoSeleccionado) {
+                "Empresa" -> "Detalle de propuesta corporativa o requerimiento (mínimo 10 caracteres)."
+                "Compra Solidaria" -> "Indique los productos o cantidades a cotizar (mínimo 5 caracteres)."
+                else -> "Disponibilidad horaria y motivación para voluntariado (mínimo 10 caracteres)."
+            }
             esValido = false
         }
 
@@ -155,6 +245,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val fechaActual = formatoFecha.format(Date())
 
             val nuevaSolicitud = SolicitudEntity(
+                tipoContacto = tipoContactoSeleccionado,
                 nombre = nombre.trim(),
                 correo = correo.trim(),
                 telefono = telefono.trim(),
@@ -179,21 +270,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         eliminarImagen()
     }
 
-    // Elimina una solicitud puntual por ID
     fun eliminarSolicitudPorId(id: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             solicitudDao.eliminarSolicitudPorId(id)
         }
     }
 
-    // Vacía toda la tabla en Room
     fun limpiarHistorialSolicitudes() {
         viewModelScope.launch(Dispatchers.IO) {
             solicitudDao.eliminarTodasLasSolicitudes()
         }
     }
 
-    // --- ESTADO DE BÚSQUEDA Y FILTRADO DEL CATÁLOGO ---
+    // --- CATÁLOGO: BÚSQUEDA Y FILTRADO ---
 
     var queryBusqueda by mutableStateOf("")
         private set
@@ -204,7 +293,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var categoriaSeleccionada by mutableStateOf("Todos")
         private set
 
-    // Actualiza la búsqueda y valida que no incluya caracteres inválidos
     fun onQueryBusquedaChange(nuevoTexto: String) {
         queryBusqueda = nuevoTexto
         val regexValido = "^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]*$".toRegex()
@@ -223,7 +311,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun onCategoriaSeleccionada(categoria: String) {
         categoriaSeleccionada = categoria
     }
-// --- SIMULADOR DE IMPACTO SOCIAL (APORTE CORPORATIVO) ---
+
+    // --- SIMULADOR DE IMPACTO SOCIAL ---
 
     var montoSimulado by mutableStateOf("")
         private set
@@ -234,7 +323,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var resultadoImpacto by mutableStateOf<String?>(null)
         private set
 
-    // Valida el monto ingresado y calcula cuántos kits de taller financia el aporte
     fun onMontoSimuladoChange(nuevoMonto: String) {
         montoSimulado = nuevoMonto
         resultadoImpacto = null
@@ -256,7 +344,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Ejecuta el cálculo de impacto social para mostrarlo en la interfaz
     fun calcularImpactoSocial() {
         val valor = montoSimulado.toLongOrNull()
         if (valor == null || valor < 5000) {
