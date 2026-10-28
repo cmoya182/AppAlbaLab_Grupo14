@@ -1,20 +1,24 @@
 package com.example.app_movil.ui.screens
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.app_movil.R
 
 @Composable
-fun HomeScreenExpandida(onButtonClick: () -> Unit = {}) {
+fun HomeScreenExpandida(
+    onCatalogoClick: () -> Unit = {},
+    onContactoClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -22,27 +26,84 @@ fun HomeScreenExpandida(onButtonClick: () -> Unit = {}) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = "Logo App",
-            modifier = Modifier.fillMaxWidth(0.4f)
-        )
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                modifier = Modifier.padding(bottom = 20.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "Logo CORPALIV Alba Lab",
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .padding(24.dp)
+                )
+            }
             Text(
-                text = "¡Bienvenido a Alba Lab! (Expandida)",
+                text = "Red Sociolaboral Alba Lab",
                 color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(20.dp))
-            Button(onClick = onButtonClick) {
-                Text(text = "Ir a Configuración")
+        }
+        Column(
+            modifier = Modifier
+                .weight(1.2f)
+                .padding(start = 24.dp),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "Propósito Institucional CORPALIV",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Generamos oportunidades reales de inclusión social y laboral para personas con discapacidad múltiple y sordoceguera a través de la producción artesanal y alianzas de Responsabilidad Social Empresarial (RSE).",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onCatalogoClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                Icon(imageVector = Icons.Default.ShoppingBag, contentDescription = null)
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(text = "Explorar Catálogo de Productos Solidarios", fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            OutlinedButton(
+                onClick = onContactoClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Favorite, contentDescription = null)
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(text = "Solicitud de Vinculación y Convenios RSE", fontWeight = FontWeight.Bold)
             }
         }
     }
-}
-
-@Preview("Expandida", widthDp = 1000, heightDp = 800, showBackground = true)
-@Composable
-fun PreviewExpandida() {
-    HomeScreenExpandida()
 }
