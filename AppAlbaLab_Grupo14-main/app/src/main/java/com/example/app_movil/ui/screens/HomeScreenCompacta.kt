@@ -15,7 +15,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.app_movil.R
 
-// Vista principal optimizada para pantallas compactas (teléfonos) con identidad institucional de CORPALIV
 @Composable
 fun HomeScreenCompacta(
     onCatalogoClick: () -> Unit = {},
@@ -24,82 +23,66 @@ fun HomeScreenCompacta(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
+            .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Tarjeta blanca con sombra suave que contiene el logo de CORPALIV
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            modifier = Modifier.padding(bottom = 20.dp)
+            modifier = Modifier.padding(bottom = 16.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo institucional de CORPALIV",
+                contentDescription = "Logo CORPALIV Alba Lab",
                 modifier = Modifier
-                    .fillMaxWidth(0.75f)
-                    .padding(20.dp)
+                    .fillMaxWidth(0.6f)
+                    .padding(16.dp)
             )
         }
-
-        // Título de la iniciativa sociolaboral
         Text(
-            text = "Red Sociolaboral Alba Lab",
+            text = "Alba Lab",
             color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Tarjeta con información institucional sobre el propósito de la corporación
+        Spacer(modifier = Modifier.height(8.dp))
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Promovemos la autonomía, formación e inclusión laboral de jóvenes y adultos con discapacidad múltiple y sordoceguera.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
+            Text(
+                text = "Promovemos la autonomía y formación sociolaboral de personas con discapacidad múltiple.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(16.dp)
+            )
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Botón principal para navegar hacia la tienda y catálogo de productos
         Button(
             onClick = onCatalogoClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
+                .height(48.dp)
         ) {
             Icon(imageVector = Icons.Default.ShoppingBag, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Explorar Tienda Alba Lab")
+            Text(text = "Explorar Tienda")
         }
-
         Spacer(modifier = Modifier.height(12.dp))
-
-        // Botón secundario con borde para navegar al formulario de vinculación
         OutlinedButton(
             onClick = onContactoClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
+                .height(48.dp)
         ) {
             Icon(imageVector = Icons.Default.Favorite, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Formulario de Vinculación")
+            Text(text = "Vinculación")
         }
     }
 }

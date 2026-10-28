@@ -1,8 +1,10 @@
 package com.example.app_movil.ui.screens
-
+import android.content.Intent
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -11,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -25,7 +28,16 @@ fun ProfileScreen(
 ) {
     val items = listOf(Screen.Home, Screen.Profile, Screen.Settings)
     var selectedItem by remember { mutableIntStateOf(1) }
+    val context = LocalContext.current
     val solicitudes by viewModel.listaSolicitudes.collectAsState()
+    val categoriasFiltro = listOf("Todas", "Empresa", "Compra Solidaria", "Voluntariado")
+
+    // Filtrado reactivo implementado por Virgilio
+    val solicitudesFiltradas = if (viewModel.filtroSolicitudes == "Todas") {
+        solicitudes
+    } else {
+        solicitudes.filter { it.tipoContacto.equals(viewModel.filtroSolicitudes, ignoreCase = true) }
+    }
 
     Scaffold(
         topBar = {
@@ -63,7 +75,6 @@ fun ProfileScreen(
                         Screen.Settings -> Icons.Default.Settings
                         else -> Icons.Default.Home
                     }
-
                     NavigationBarItem(
                         selected = selectedItem == index,
                         onClick = {
@@ -156,34 +167,56 @@ fun ProfileScreen(
                             }
                         }
                     }
-
                     Spacer(modifier = Modifier.height(20.dp))
-
+                    Text(
+                        text = "Filtrar Solicitudes por Tipo:",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // Fila de chips de filtro implementada por Virgilio
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        categoriasFiltro.forEach { cat ->
+                            FilterChip(
+                                selected = viewModel.filtroSolicitudes == cat,
+                                onClick = { viewModel.onFiltroSolicitudesChange(cat) },
+                                label = { Text(cat) }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Solicitudes Recibidas (${solicitudes.size})",
+                            text = "Solicitudes (${solicitudesFiltradas.size})",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-
                     Spacer(modifier = Modifier.height(10.dp))
-
-                    if (solicitudes.isEmpty()) {
+                    if (solicitudesFiltradas.isEmpty()) {
                         Text(
-                            text = "No hay solicitudes registradas por el momento.",
+                            text = if (solicitudes.isEmpty())
+                                "No hay solicitudes registradas por el momento."
+                            else
+                                "No hay solicitudes en la categoría '${viewModel.filtroSolicitudes}'.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 16.dp)
                         )
                     }
                 }
-
-                items(solicitudes) { solicitud ->
+                items(solicitudesFiltradas) { solicitud ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -211,27 +244,49 @@ fun ProfileScreen(
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     )
                                 }
-
-                                IconButton(
-                                    onClick = { viewModel.eliminarSolicitudPorId(solicitud.id) },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Eliminar solicitud",
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
+                                Row {
+                                    // Recurso Nativo Android: Compartir solicitud vía Intent
+                                    IconButton(
+                                        onClick = {
+                                            val sendIntent = Intent().apply {
+                                                action = Intent.ACTION_SEND
+                                                putExtra(
+                                                    Intent.EXTRA_TEXT,
+                                                    "Solicitud Alba Lab [${solicitud.tipoContacto}]\nDe: ${solicitud.nombre}\nCorreo: ${solicitud.correo}\nTeléfono: ${solicitud.telefono}\nMensaje: ${solicitud.mensaje}\nFecha: ${solicitud.fecha}"
+                                                )
+                                                type = "text/plain"
+                                            }
+                                            context.startActivity(Intent.createChooser(sendIntent, "Compartir Solicitud"))
+                                        },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Share,
+                                            contentDescription = "Compartir solicitud",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    IconButton(
+                                        onClick = { viewModel.eliminarSolicitudPorId(solicitud.id) },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Eliminar solicitud",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
                             }
-
                             Spacer(modifier = Modifier.height(6.dp))
-
                             Text(
                                 text = solicitud.nombre,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
-
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Email,
@@ -246,7 +301,6 @@ fun ProfileScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Phone,
@@ -261,14 +315,12 @@ fun ProfileScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Propuesta: ${solicitud.mensaje}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Spacer(modifier = Modifier.height(4.dp))
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End,

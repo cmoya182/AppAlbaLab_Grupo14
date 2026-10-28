@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -19,12 +21,16 @@ import com.example.app_movil.viewmodels.MainViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             APP_MOVILTheme {
                 val viewModel: MainViewModel = viewModel()
                 val navController = rememberNavController()
+
+                // Calculamos el tamaño de la pantalla (Compact, Medium, Expanded)
+                val windowSizeClass = calculateWindowSizeClass(this)
 
                 LaunchedEffect(key1 = Unit) {
                     viewModel.navigationEvents.collectLatest { event ->
@@ -47,13 +53,13 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     NavHost(
                         navController = navController,
-                        startDestination = Screen.Login.route // Inicia directamente en el Login
+                        startDestination = Screen.Login.route
                     ) {
                         composable(route = Screen.Login.route) {
                             LoginScreen(viewModel = viewModel)
                         }
                         composable(route = Screen.Home.route) {
-                            HomeScreen(navController = navController, viewModel = viewModel)
+                            HomeScreen(viewModel = viewModel, windowSizeClass = windowSizeClass)
                         }
                         composable(route = Screen.Catalogo.route) {
                             CatalogoScreen(viewModel = viewModel)
