@@ -22,6 +22,18 @@ import com.example.app_movil.navigation.Screen
 import com.example.app_movil.ui.components.AppBottomBar
 import com.example.app_movil.viewmodels.MainViewModel
 
+/**
+ * Panel institucional y centro de administración de solicitudes Alba Lab.
+ *
+ * Opera bajo dos estados de visualización mutuamente excluyentes:
+ * - Estado No Autenticado: Bloqueo de acceso con vista informativa que redirige al flujo de login administrativo.
+ * - Estado Autenticado: Interfaz de control que permite monitorear solicitudes persistidas en SQLite,
+ *   filtrarlas dinámicamente mediante chips de categorías, compartirlas a través de Intents de Android
+ *   y eliminarlas mediante operaciones seguras sincronizadas con el DAO.
+ *
+ * @param navController Controlador de navegación para redirigir entre pantallas y subflujos.
+ * @param viewModel Instancia del ViewModel compartido que provee los flujos de estado y operaciones de datos.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -29,9 +41,12 @@ fun ProfileScreen(
     viewModel: MainViewModel
 ) {
     val context = LocalContext.current
+
+    // Observación reactiva de la lista de solicitudes expuesta como StateFlow por Room
     val solicitudes by viewModel.listaSolicitudes.collectAsState()
     val categoriasFiltro = listOf("Todas", "Empresa", "Compra Solidaria", "Voluntariado")
 
+    // Filtrado en memoria de la colección reactiva según el chip seleccionado en la UI
     val solicitudesFiltradas = if (viewModel.filtroSolicitudes == "Todas") {
         solicitudes
     } else {
@@ -67,6 +82,7 @@ fun ProfileScreen(
         }
     ) { innerPadding ->
         if (!viewModel.estaAutenticado) {
+            // Estado No Autenticado: Restricción de acceso con botón de redirección
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -104,6 +120,7 @@ fun ProfileScreen(
                 }
             }
         } else {
+            // Estado Autenticado: Lista virtualizada con scroll eficiente
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -112,6 +129,7 @@ fun ProfileScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 item {
+                    // Cabecera con datos de la sesión activa
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -158,6 +176,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Filtros horizontales reactivos
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -202,6 +221,7 @@ fun ProfileScreen(
                     }
                 }
 
+                // Renderizado iterativo de tarjetas de solicitud
                 items(solicitudesFiltradas) { solicitud ->
                     Card(
                         modifier = Modifier
@@ -232,6 +252,7 @@ fun ProfileScreen(
                                 }
 
                                 Row {
+                                    // Compartir mediante Intent implícito de Android
                                     IconButton(
                                         onClick = {
                                             val sendIntent = Intent().apply {
@@ -256,6 +277,7 @@ fun ProfileScreen(
 
                                     Spacer(modifier = Modifier.width(8.dp))
 
+                                    // Eliminación persistente a través del ViewModel y DAO
                                     IconButton(
                                         onClick = { viewModel.eliminarSolicitudPorId(solicitud.id) },
                                         modifier = Modifier.size(28.dp)
