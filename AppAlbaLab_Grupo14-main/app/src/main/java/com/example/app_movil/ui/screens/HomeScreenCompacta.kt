@@ -31,32 +31,36 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.app_movil.R
 
-// =========================================================================================
-// TORPEDO PARA LA DEFENSA - ANIMACIÓN DE ENTRADA PROGRESIVA Y SUAVE (HOME)
-// =========================================================================================
-// Calibración fina:
-// - Duración de transición: 600ms con FastOutSlowInEasing (desaceleración suave y elegante).
-// - Escalonamiento continuo: 80ms, 200ms y 320ms para una cascada pausada.
-// - Desplazamiento flotante: 22dp sutiles sin tirones ni rebotes.
-// =========================================================================================
-
+/**
+ * Pantalla principal optimizada para factores de forma compactos (teléfonos móviles).
+ *
+ * Implementa una secuencia de animación de entrada escalonada (Staggered Animation) con desaceleración progresiva
+ * mediante modificadores de renderizado gráfico en tiempo de ejecución (graphicsLayer).
+ * Este enfoque preserva las dimensiones del contenedor para garantizar una transición libre de saltos de diseño (zero layout shift)
+ * y una tasa de refresco constante a 60 FPS.
+ *
+ * @param onCatalogoClick Callback de navegación hacia la vista del catálogo solidario.
+ * @param onEmpresaClick Callback de navegación hacia el formulario de convenios empresariales y RSE.
+ * @param onVoluntariadoClick Callback de navegación hacia el formulario de postulación a voluntariado.
+ */
 @Composable
 fun HomeScreenCompacta(
     onCatalogoClick: () -> Unit = {},
     onEmpresaClick: () -> Unit = {},
     onVoluntariadoClick: () -> Unit = {}
 ) {
+    // Variable de estado que dispara la ejecución secuencial de las animaciones al entrar a la composición
     var animacionIniciada by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         animacionIniciada = true
     }
 
-    // Configuración compartida de duración y curva suave
+    // Parámetros de interpolación compartidos: curva cúbica desacelerada y duración extendida
     val duracion = 600
     val curvaSuave = FastOutSlowInEasing
 
-    // Tarjeta 1: Tienda Solidaria
+    // Interpolación de transparencia y traslación vertical para la Tarjeta 1 (Tienda Solidaria)
     val alpha1 by animateFloatAsState(
         targetValue = if (animacionIniciada) 1f else 0f,
         animationSpec = tween(durationMillis = duracion, delayMillis = 80, easing = curvaSuave),
@@ -68,7 +72,7 @@ fun HomeScreenCompacta(
         label = "OffsetY1"
     )
 
-    // Tarjeta 2: Convenio Empresa / RSE
+    // Interpolación de transparencia y traslación vertical para la Tarjeta 2 (Convenio Empresa / RSE)
     val alpha2 by animateFloatAsState(
         targetValue = if (animacionIniciada) 1f else 0f,
         animationSpec = tween(durationMillis = duracion, delayMillis = 200, easing = curvaSuave),
@@ -80,7 +84,7 @@ fun HomeScreenCompacta(
         label = "OffsetY2"
     )
 
-    // Tarjeta 3: Postular a Voluntariado
+    // Interpolación de transparencia y traslación vertical para la Tarjeta 3 (Postulación a Voluntariado)
     val alpha3 by animateFloatAsState(
         targetValue = if (animacionIniciada) 1f else 0f,
         animationSpec = tween(durationMillis = duracion, delayMillis = 320, easing = curvaSuave),
@@ -99,7 +103,7 @@ fun HomeScreenCompacta(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo oficial institucional (Fijo y estable)
+        // Contenedor visual del imagotipo institucional con elevación fija
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -125,6 +129,7 @@ fun HomeScreenCompacta(
 
         Spacer(modifier = Modifier.height(6.dp))
 
+        // Bloque descriptivo de la misión institucional y propósito de la aplicación
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -143,7 +148,7 @@ fun HomeScreenCompacta(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- TARJETA 1: TIENDA SOLIDARIA ---
+        // --- TARJETA DE ACCIÓN 1: CATÁLOGO DE TIENDA SOLIDARIA ---
         TarjetaAccionInteractiva(
             titulo = "Explorar Tienda Solidaria",
             subtitulo = "Catálogo de productos hechos en talleres",
@@ -159,7 +164,7 @@ fun HomeScreenCompacta(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // --- TARJETA 2: CONVENIO EMPRESA / RSE ---
+        // --- TARJETA DE ACCIÓN 2: CONVENIO INSTITUCIONAL Y RSE ---
         TarjetaAccionInteractiva(
             titulo = "Convenio Empresa / RSE",
             subtitulo = "Alianzas corporativas y compras por volumen",
@@ -175,7 +180,7 @@ fun HomeScreenCompacta(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // --- TARJETA 3: POSTULAR A VOLUNTARIADO ---
+        // --- TARJETA DE ACCIÓN 3: POSTULACIÓN A PROGRAMA DE VOLUNTARIADO ---
         TarjetaAccionInteractiva(
             titulo = "Postular a Voluntariado",
             subtitulo = "Súmate y apoya a los jóvenes en talleres",
@@ -191,9 +196,25 @@ fun HomeScreenCompacta(
     }
 }
 
-// =========================================================================================
-// TARJETA INTERACTIVA DE ACCIÓN (MATERIAL DESIGN 3)
-// =========================================================================================
+/**
+ * Componente modular de tarjeta de navegación que implementa microinteracciones táctiles avanzadas.
+ *
+ * Modela una respuesta física al contacto:
+ * - Reducción elástica de escala a 0.95f con física de resorte (Spring Spec).
+ * - Descenso de elevación de 3.dp a 1.dp simulando el hundimiento de una tecla física.
+ * - Desplazamiento horizontal del glifo indicador (+6.dp) para proporcionar anticipación visual de navegación.
+ *
+ * @param titulo Encabezado principal de la acción.
+ * @param subtitulo Texto secundario explicativo del objetivo de la pantalla de destino.
+ * @param icono Recurso vectorial representativo de la categoría.
+ * @param colorContenedor Tonalidad de fondo de la tarjeta.
+ * @param colorIconoFondo Tonalidad de relleno del contenedor circular del ícono.
+ * @param colorIcono Tinte aplicado sobre el vector del ícono.
+ * @param colorTexto Tinte aplicado sobre la tipografía de títulos y subtítulos.
+ * @param alpha Nivel de opacidad interpolado en la animación de entrada.
+ * @param offsetY Desplazamiento vertical interpolado en la animación de entrada.
+ * @param onClick Acción de navegación ejecutada al completar la pulsación.
+ */
 @Composable
 fun TarjetaAccionInteractiva(
     titulo: String,
@@ -207,10 +228,11 @@ fun TarjetaAccionInteractiva(
     offsetY: Float,
     onClick: () -> Unit
 ) {
+    // Fuente de interacción para capturar estados de pulsación en tiempo real
     val interactionSource = remember { MutableInteractionSource() }
     val estaPresionado by interactionSource.collectIsPressedAsState()
 
-    // Respuesta física de escala al presionar
+    // 1. Escala elástica con física de resorte amortiguado
     val escala by animateFloatAsState(
         targetValue = if (estaPresionado) 0.95f else 1.0f,
         animationSpec = spring(
@@ -220,14 +242,14 @@ fun TarjetaAccionInteractiva(
         label = "EscalaTarjeta"
     )
 
-    // Elevación: pasa de flotar con 3dp a 1dp al tocarla
+    // 2. Elevación física reactiva: simulación de profundidad dinámica
     val elevacion by animateDpAsState(
         targetValue = if (estaPresionado) 1.dp else 3.dp,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "ElevacionTarjeta"
     )
 
-    // La flecha avanza 6dp avisando hacia dónde navega
+    // 3. Desplazamiento del indicador de avance (flecha)
     val desplazamientoFlecha by animateDpAsState(
         targetValue = if (estaPresionado) 6.dp else 0.dp,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
@@ -258,6 +280,7 @@ fun TarjetaAccionInteractiva(
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Contenedor circular con identidad visual contrastada
             Surface(
                 shape = CircleShape,
                 color = colorIconoFondo,
@@ -275,6 +298,7 @@ fun TarjetaAccionInteractiva(
 
             Spacer(modifier = Modifier.width(14.dp))
 
+            // Jerarquía de textos informativa
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = titulo,
@@ -289,6 +313,7 @@ fun TarjetaAccionInteractiva(
                 )
             }
 
+            // Indicador de avance direccional
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,

@@ -20,16 +20,33 @@ import com.example.app_movil.ui.theme.APP_MOVILTheme
 import com.example.app_movil.viewmodels.MainViewModel
 import kotlinx.coroutines.flow.collectLatest
 
+/**
+ * Actividad principal y punto de entrada del ciclo de vida de la aplicación Alba Lab.
+ *
+ * Implementa la arquitectura Single-Activity en conjunto con Jetpack Compose.
+ * Sus responsabilidades principales comprenden:
+ * 1. Inicialización del contenedor raíz y aplicación del tema institucional (APP_MOVILTheme).
+ * 2. Cálculo del factor de forma de la pantalla mediante WindowSizeClass para diseño adaptable.
+ * 3. Configuración del grafo declarativo de navegación (NavHost) y recolección de eventos asíncronos.
+ * 4. Determinación dinámica de la ruta inicial (startDestination) según el estado de sesión persistido.
+ */
 class MainActivity : ComponentActivity() {
+
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             APP_MOVILTheme {
+                // Instancia centralizada del ViewModel vinculada al ciclo de vida del NavHost
                 val viewModel: MainViewModel = viewModel()
+
+                // Controlador del historial de pantallas y transiciones declarativas
                 val navController = rememberNavController()
+
+                // Cálculo de las dimensiones de la ventana para habilitar UI responsiva
                 val windowSizeClass = calculateWindowSizeClass(this)
 
+                // Colector reactivo de eventos únicos de navegación emitidos por el ViewModel
                 LaunchedEffect(key1 = Unit) {
                     viewModel.navigationEvents.collectLatest { event ->
                         when (event) {
@@ -49,9 +66,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Surface(modifier = Modifier.fillMaxSize()) {
+                    // Grafo de rutas de navegación: redirige a Home si existe sesión activa previa en SharedPreferences
                     NavHost(
                         navController = navController,
-                        // Si ya está autenticado en disco, entra directo a Home; si no, al Login
                         startDestination = if (viewModel.estaAutenticado) Screen.Home.route else Screen.Login.route
                     ) {
                         composable(route = Screen.Login.route) {

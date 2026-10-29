@@ -31,22 +31,24 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.app_movil.viewmodels.MainViewModel
 
-// =========================================================================================
-// TORPEDO PARA LA DEFENSA - FORMULARIOS SEGMENTADOS E INDEPENDIENTES
-// =========================================================================================
-// Archivo: ContactoScreen.kt
-// Propósito: Contiene las 3 pantallas de contacto de la aplicación, totalmente desacopladas.
-// Al entrar a cada una, el tipo de formulario queda fijo y el usuario NO lo puede cambiar.
-// - ContactoEmpresaScreen: Convenios RSE y compras por volumen (permite logo/documento nativo).
-// - ContactoCompraScreen: Cotización directa de tienda (producto fijo bloqueado, SIN fotos).
-// - ContactoVoluntariadoScreen: Postulación de personas para apoyar talleres (permite foto nativa).
-// Cumple Rúbrica: IE 2.2.1 (Uso de recursos nativos del dispositivo: Cámara y Galería).
-// =========================================================================================
+/**
+ * Módulo de captura y persistencia de solicitudes institucionales Alba Lab.
+ *
+ * Proporciona pantallas especializadas y desacopladas para cada canal de vinculación:
+ * 1. ContactoEmpresaScreen: Convenios corporativos y compras mayoristas con soporte de adjuntos multimedia.
+ * 2. ContactoCompraScreen: Cotización directa de productos con referencia estática bloqueada y sin adjuntos.
+ * 3. ContactoVoluntariadoScreen: Postulación de colaboradores con verificación de identidad fotográfica nativa.
+ *
+ * Centraliza la validación reactiva de campos de texto, gestión de permisos de hardware en tiempo de ejecución
+ * e invocación asíncrona hacia la base de datos Room SQLite a través del MainViewModel.
+ */
 
-// --- 1. FORMULARIO CONVENIO EMPRESA / RSE ---
+/**
+ * Formulario especializado para alianzas corporativas y compras institucionales por volumen (RSE).
+ * Habilita la integración con la cámara y galería nativa para anexar documentos o logotipos de la empresa.
+ */
 @Composable
 fun ContactoEmpresaScreen(viewModel: MainViewModel) {
-    // Al entrar, fijamos el tipo como "Empresa" en el ViewModel
     LaunchedEffect(Unit) { viewModel.prepararFormulario("Empresa") }
 
     FormularioBaseScreen(
@@ -57,17 +59,18 @@ fun ContactoEmpresaScreen(viewModel: MainViewModel) {
         labelMensaje = "Propuesta de Convenio o Requerimiento *",
         placeholderMensaje = "Cuéntanos qué tipo de alianza o compra corporativa desean realizar...",
         textoBotonImagen = "Adjuntar Logo o Documento de Empresa (Opcional)",
-        permitirAdjuntos = true, // Permite usar Cámara y Galería
+        permitirAdjuntos = true,
         tarjetaProductoFijo = null,
         viewModel = viewModel
     )
 }
 
-// --- 2. FORMULARIO COTIZACIÓN COMPRA SOLIDARIA ---
-// Cumple la regla: Producto seleccionado BLOQUEADO y SIN cámara/galería (solo datos de contacto)
+/**
+ * Formulario especializado para cotizaciones directas de productos de la Tienda Solidaria.
+ * Mantiene el producto seleccionado fijado en una tarjeta inmutable y restringe el uso de adjuntos.
+ */
 @Composable
 fun ContactoCompraScreen(viewModel: MainViewModel) {
-    // El tipo queda fijo como "Compra Solidaria"
     LaunchedEffect(Unit) { viewModel.prepararFormulario("Compra Solidaria", viewModel.mensaje) }
 
     val detalleProducto = if (viewModel.mensaje.isNotBlank()) viewModel.mensaje else "Producto seleccionado del Catálogo Alba Lab"
@@ -80,9 +83,8 @@ fun ContactoCompraScreen(viewModel: MainViewModel) {
         labelMensaje = "Cantidad Deseada o Notas de Entrega *",
         placeholderMensaje = "Ej: Necesito 5 unidades para entrega en Santiago Centro...",
         textoBotonImagen = "",
-        permitirAdjuntos = false, // REGLA: SIN cámara ni galería para compras
+        permitirAdjuntos = false,
         tarjetaProductoFijo = {
-            // TARJETA DE PRODUCTO FIJO BLOQUEADO: No se puede cambiar ni editar
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -97,7 +99,7 @@ fun ContactoCompraScreen(viewModel: MainViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Lock, // Candado visual que indica producto fijado
+                        imageVector = Icons.Default.Lock,
                         contentDescription = "Producto bloqueado",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
@@ -129,10 +131,12 @@ fun ContactoCompraScreen(viewModel: MainViewModel) {
     )
 }
 
-// --- 3. FORMULARIO POSTULACIÓN VOLUNTARIADO ---
+/**
+ * Formulario especializado para la inscripción de colaboradores voluntarios en talleres de oficio.
+ * Habilita la captura o selección de imagen para validar la ficha de postulación.
+ */
 @Composable
 fun ContactoVoluntariadoScreen(viewModel: MainViewModel) {
-    // El tipo queda fijo como "Voluntariado"
     LaunchedEffect(Unit) { viewModel.prepararFormulario("Voluntariado") }
 
     FormularioBaseScreen(
@@ -143,15 +147,18 @@ fun ContactoVoluntariadoScreen(viewModel: MainViewModel) {
         labelMensaje = "Motivación y Horarios Disponibles *",
         placeholderMensaje = "Cuéntanos tu motivación para apoyar y en qué días tienes disponibilidad...",
         textoBotonImagen = "Adjuntar Foto o Identificación (Opcional)",
-        permitirAdjuntos = true, // Permite Cámara y Galería
+        permitirAdjuntos = true,
         tarjetaProductoFijo = null,
         viewModel = viewModel
     )
 }
 
-// =========================================================================================
-// PLANTILLA BASE REUTILIZABLE PARA TODOS LOS FORMULARIOS
-// =========================================================================================
+/**
+ * Plantilla base reutilizable para el renderizado consistente de formularios.
+ *
+ * Gestiona el ciclo de vida de los contratos de actividad de Android (ActivityResultLauncher)
+ * para interactuar con la cámara del dispositivo y el selector de archivos multimedia de la galería.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FormularioBaseScreen(
@@ -168,21 +175,24 @@ private fun FormularioBaseScreen(
 ) {
     val context = LocalContext.current
 
-    // Permisos y recursos nativos de Cámara y Galería
+    // Estado del permiso de cámara evaluado en tiempo de ejecución
     var tienePermisoCamara by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         )
     }
 
+    // Contrato para selección de archivos de imagen desde el almacenamiento local
     val launcherGaleria = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri -> viewModel.onImagenSeleccionada(uri) }
 
+    // Contrato para captura directa mediante la aplicación de cámara nativa
     val launcherCamara = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap -> viewModel.onFotoCapturada(bitmap) }
 
+    // Manejador del diálogo del sistema para solicitar permisos en tiempo de ejecución
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -190,7 +200,7 @@ private fun FormularioBaseScreen(
         if (isGranted) launcherCamara.launch(null)
     }
 
-    // Decodificación nativa de la imagen de galería sin librerías externas
+    // Decodificación en memoria del archivo multimedia referenciado por URI sin librerías externas
     val bitmapGaleria = remember(viewModel.imagenUri) {
         viewModel.imagenUri?.let { uri ->
             try {
@@ -205,7 +215,7 @@ private fun FormularioBaseScreen(
 
     val imagenAMostrar = viewModel.fotoBitmap ?: bitmapGaleria
 
-    // Ventana emergente al enviar exitosamente la solicitud a la base de datos Room
+    // Cuadro de diálogo de confirmación tras la persistencia exitosa en Room
     if (viewModel.mostrarConfirmacion) {
         AlertDialog(
             onDismissRequest = { viewModel.cerrarConfirmacion() },
@@ -248,10 +258,10 @@ private fun FormularioBaseScreen(
                 .padding(18.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Muestra la tarjeta del producto fijado si estamos en el formulario de compra
+            // Renderizado condicional de la tarjeta de producto fijo
             tarjetaProductoFijo?.invoke()
 
-            // Cuadro explicativo del formulario
+            // Cuadro de contexto informativo
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                 modifier = Modifier.fillMaxWidth()
@@ -276,7 +286,7 @@ private fun FormularioBaseScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- CAMPO 1: NOMBRE COMPLETO ---
+            // Campo de entrada: Identificación / Razón Social
             OutlinedTextField(
                 value = viewModel.nombre,
                 onValueChange = { viewModel.onNombreChange(it) },
@@ -291,7 +301,7 @@ private fun FormularioBaseScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // --- CAMPO 2: CORREO ELECTRÓNICO ---
+            // Campo de entrada: Correo Electrónico
             OutlinedTextField(
                 value = viewModel.correo,
                 onValueChange = { viewModel.onCorreoChange(it) },
@@ -307,7 +317,7 @@ private fun FormularioBaseScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // --- CAMPO 3: TELÉFONO DE CONTACTO ---
+            // Campo de entrada: Teléfono de Contacto
             OutlinedTextField(
                 value = viewModel.telefono,
                 onValueChange = { viewModel.onTelefonoChange(it) },
@@ -323,7 +333,7 @@ private fun FormularioBaseScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // --- CAMPO 4: MENSAJE O DETALLES ---
+            // Campo de entrada: Requerimiento o notas adicionales
             OutlinedTextField(
                 value = viewModel.mensaje,
                 onValueChange = { viewModel.onMensajeChange(it) },
@@ -335,7 +345,7 @@ private fun FormularioBaseScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // --- SECCIÓN NATIVA DE CÁMARA Y GALERÍA (SOLO SI SE PERMITE) ---
+            // Controles de adjuntos multimedia nativos
             if (permitirAdjuntos) {
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -406,7 +416,7 @@ private fun FormularioBaseScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- BOTÓN PRINCIPAL DE ENVÍO HACIA LA BASE DE DATOS ROOM ---
+            // Acción principal de confirmación y persistencia
             Button(
                 onClick = { viewModel.enviarFormulario() },
                 modifier = Modifier
