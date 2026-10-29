@@ -1,6 +1,7 @@
 package com.example.app_movil.viewmodels
 
 import android.app.Application
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.runtime.getValue
@@ -25,6 +26,9 @@ import java.util.Date
 import java.util.Locale
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
+
+    // Almacenamiento clave-valor permanente para mantener la sesión iniciada
+    private val prefs = application.getSharedPreferences("alba_lab_session_prefs", Context.MODE_PRIVATE)
 
     private val database = AppDatabase.getDatabase(application)
     private val solicitudDao = database.solicitudDao()
@@ -52,32 +56,110 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { _navigationEvents.emit(NavigationEvent.NavigateUp) }
     }
 
-    // --- AUTENTICACIÓN INSTITUCIONAL (LOGIN) ---
-    var estaAutenticado by mutableStateOf(false)
+    // --- AUTENTICACIÓN INSTITUCIONAL CON PERSISTENCIA EN DISCO ---
+    var estaAutenticado by mutableStateOf(prefs.getBoolean("sesion_activa", false))
         private set
-    var usuarioLogueado by mutableStateOf<String?>(null)
+
+    var usuarioLogueado by mutableStateOf(prefs.getString("usuario_logueado", null))
+        private set
+
+    var loginEmail by mutableStateOf("")
+        private set
+    var loginEmailError by mutableStateOf<String?>(null)
+        private set
+    var loginPassword by mutableStateOf("")
+        private set
+    var loginPasswordError by mutableStateOf<String?>(null)
         private set
     var loginError by mutableStateOf<String?>(null)
         private set
+    var passwordVisible by mutableStateOf(false)
+        private set
+
+    fun onLoginEmailChange(nuevoEmail: String) {
+        loginEmail = nuevoEmail
+        if (loginEmailError != null) loginEmailError = null
+        if (loginError != null) loginError = null
+    }
+
+    fun onLoginPasswordChange(nuevaClave: String) {
+        loginPassword = nuevaClave
+        if (loginPasswordError != null) loginPasswordError = null
+        if (loginError != null) loginError = null
+    }
+
+    fun togglePasswordVisibility() {
+        passwordVisible = !passwordVisible
+    }
+
+    fun iniciarSesion() {
+        var esValido = true
+        val regexEmail = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$".toRegex()
+        if (!loginEmail.trim().matches(regexEmail)) {
+            loginEmailError = "Ingrese un correo institucional válido (@corpaliv.cl)."
+            esValido = false
+        }
+        if (loginPassword.length < 6) {
+            loginPasswordError = "La contraseña debe contener al menos 6 caracteres."
+            esValido = false
+        }
+        if (esValido) {
+            if (loginEmail.trim().equals("admin@corpaliv.cl", ignoreCase = true) && loginPassword == "albalab2026") {
+                estaAutenticado = true
+                usuarioLogueado = "Administrador Alba Lab"
+                loginEmail = ""
+                loginPassword = ""
+                loginError = null
+
+                // Se almacena en disco para mantenerla activa siempre
+                prefs.edit()
+                    .putBoolean("sesion_activa", true)
+                    .putString("usuario_logueado", "Administrador Alba Lab")
+                    .apply()
+
+                navigateTo(Screen.Home)
+            } else {
+                loginPasswordError = "Credenciales incorrectas (Demo: admin@corpaliv.cl / albalab2026)."
+                loginError = loginPasswordError
+            }
+        }
+    }
 
     fun iniciarSesion(correo: String, contrasena: String) {
-        if (correo == "admin@corpaliv.cl" && contrasena == "albalab2026") {
+        if (correo.trim().equals("admin@corpaliv.cl", ignoreCase = true) && contrasena == "albalab2026") {
             estaAutenticado = true
             usuarioLogueado = "Administrador Alba Lab"
             loginError = null
-            navigateTo(Screen.Profile)
+
+            prefs.edit()
+                .putBoolean("sesion_activa", true)
+                .putString("usuario_logueado", "Administrador Alba Lab")
+                .apply()
+
+            navigateTo(Screen.Home)
         } else {
             loginError = "Credenciales incorrectas. Verifique e intente nuevamente."
         }
     }
 
+    fun ingresarComoInvitado() {
+        navigateTo(Screen.Home)
+    }
+
     fun cerrarSesion() {
         estaAutenticado = false
         usuarioLogueado = null
+
+        // Se remueve del disco
+        prefs.edit()
+            .remove("sesion_activa")
+            .remove("usuario_logueado")
+            .apply()
+
         navigateTo(Screen.Login)
     }
 
-    // --- FILTRADO REACTIVO DEL HISTORIAL DE SOLICITUDES (VIRGILIO) ---
+    // --- FILTRADO REACTIVO DEL HISTORIAL DE SOLICITUDES ---
     var filtroSolicitudes by mutableStateOf("Todas")
         private set
 
@@ -85,7 +167,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         filtroSolicitudes = nuevoFiltro
     }
 
-    // --- ESTADO DEL FORMULARIO DE VINCULACIÓN ---
+    // --- FORMULARIO DE VINCULACIÓN ADAPTATIVO DEDICADO ---
     var tipoContacto by mutableStateOf("Empresa")
         private set
     var nombre by mutableStateOf("")
@@ -111,6 +193,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var mostrarConfirmacion by mutableStateOf(false)
         private set
 
+    fun prepararFormulario(tipo: String, mensajeInicial: String = "") {
+        tipoContacto = tipo
+        nombre = ""
+        correo = ""
+        telefono = ""
+        mensaje = mensajeInicial
+        nombreError = null
+        correoError = null
+        telefonoError = null
+        mensajeError = null
+        eliminarImagen()
+    }
+
     fun onTipoContactoChange(nuevoTipo: String) { tipoContacto = nuevoTipo }
     fun onNombreChange(nuevoValor: String) { nombre = nuevoValor; if (nombreError != null) nombreError = null }
     fun onCorreoChange(nuevoValor: String) { correo = nuevoValor; if (correoError != null) correoError = null }
@@ -122,11 +217,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun enviarFormulario() {
         var esValido = true
-        if (nombre.trim().length < 3) { nombreError = "Debe tener al menos 3 caracteres."; esValido = false }
+
+        val minNombre = if (tipoContacto == "Empresa") 4 else 3
+        if (nombre.trim().length < minNombre) {
+            nombreError = if (tipoContacto == "Empresa") {
+                "Ingrese razón social o empresa válida (mínimo 4 caracteres)."
+            } else {
+                "El nombre completo debe tener al menos 3 caracteres."
+            }
+            esValido = false
+        }
+
         val regexCorreo = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$".toRegex()
-        if (!correo.trim().matches(regexCorreo)) { correoError = "Ingrese un correo válido."; esValido = false }
-        if (telefono.trim().length < 8 || !telefono.all { it.isDigit() || it == '+' }) { telefonoError = "Ingrese un número válido."; esValido = false }
-        if (mensaje.trim().length < 10) { mensajeError = "Mínimo 10 caracteres."; esValido = false }
+        if (!correo.trim().matches(regexCorreo)) {
+            correoError = "Ingrese un correo electrónico válido."
+            esValido = false
+        }
+
+        if (telefono.trim().length < 8 || !telefono.all { it.isDigit() || it == '+' }) {
+            telefonoError = "Ingrese un número de teléfono válido (mínimo 8 dígitos)."
+            esValido = false
+        }
+
+        val minMensaje = if (tipoContacto == "Compra Solidaria") 5 else 10
+        if (mensaje.trim().length < minMensaje) {
+            mensajeError = when (tipoContacto) {
+                "Empresa" -> "Detalle de propuesta corporativa o requerimiento (mínimo 10 caracteres)."
+                "Compra Solidaria" -> "Indique los productos o cantidades a cotizar (mínimo 5 caracteres)."
+                else -> "Disponibilidad horaria y motivación para voluntariado (mínimo 10 caracteres)."
+            }
+            esValido = false
+        }
 
         if (esValido) {
             val formatoFecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
@@ -173,6 +294,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val regexValido = "^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]*\$".toRegex()
         busquedaError = if (!nuevoTexto.matches(regexValido)) "No se permiten caracteres especiales." else null
     }
+
     fun limpiarBusqueda() { queryBusqueda = ""; busquedaError = null }
     fun onCategoriaSeleccionada(categoria: String) { categoriaSeleccionada = categoria }
 

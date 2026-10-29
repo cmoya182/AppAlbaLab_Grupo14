@@ -1,4 +1,5 @@
 package com.example.app_movil.ui.screens
+
 import android.content.Intent
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.app_movil.navigation.Screen
+import com.example.app_movil.ui.components.AppBottomBar
 import com.example.app_movil.viewmodels.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,13 +28,10 @@ fun ProfileScreen(
     navController: NavController,
     viewModel: MainViewModel
 ) {
-    val items = listOf(Screen.Home, Screen.Profile, Screen.Settings)
-    var selectedItem by remember { mutableIntStateOf(1) }
     val context = LocalContext.current
     val solicitudes by viewModel.listaSolicitudes.collectAsState()
     val categoriasFiltro = listOf("Todas", "Empresa", "Compra Solidaria", "Voluntariado")
 
-    // Filtrado reactivo implementado por Virgilio
     val solicitudesFiltradas = if (viewModel.filtroSolicitudes == "Todas") {
         solicitudes
     } else {
@@ -61,31 +60,10 @@ fun ProfileScreen(
             )
         },
         bottomBar = {
-            NavigationBar {
-                items.forEachIndexed { index, screen ->
-                    val labelText = when (screen) {
-                        Screen.Home -> "Inicio"
-                        Screen.Profile -> "Perfil"
-                        Screen.Settings -> "Ajustes"
-                        else -> ""
-                    }
-                    val iconVector = when (screen) {
-                        Screen.Home -> Icons.Default.Home
-                        Screen.Profile -> Icons.Default.Person
-                        Screen.Settings -> Icons.Default.Settings
-                        else -> Icons.Default.Home
-                    }
-                    NavigationBarItem(
-                        selected = selectedItem == index,
-                        onClick = {
-                            selectedItem = index
-                            viewModel.navigateTo(screen)
-                        },
-                        label = { Text(text = labelText) },
-                        icon = { Icon(imageVector = iconVector, contentDescription = labelText) }
-                    )
-                }
-            }
+            AppBottomBar(
+                currentScreen = Screen.Profile,
+                onNavigate = { viewModel.navigateTo(it) }
+            )
         }
     ) { innerPadding ->
         if (!viewModel.estaAutenticado) {
@@ -160,14 +138,16 @@ fun ProfileScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Sesión Activa - Gestión de Solicitudes",
+                                    text = "Sesión Activa Permanente - Gestión de Solicitudes",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             }
                         }
                     }
+
                     Spacer(modifier = Modifier.height(20.dp))
+
                     Text(
                         text = "Filtrar Solicitudes por Tipo:",
                         style = MaterialTheme.typography.titleSmall,
@@ -175,8 +155,9 @@ fun ProfileScreen(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth()
                     )
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    // Fila de chips de filtro implementada por Virgilio
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -191,7 +172,9 @@ fun ProfileScreen(
                             )
                         }
                     }
+
                     Spacer(modifier = Modifier.height(14.dp))
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -203,7 +186,9 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
+
                     Spacer(modifier = Modifier.height(10.dp))
+
                     if (solicitudesFiltradas.isEmpty()) {
                         Text(
                             text = if (solicitudes.isEmpty())
@@ -216,6 +201,7 @@ fun ProfileScreen(
                         )
                     }
                 }
+
                 items(solicitudesFiltradas) { solicitud ->
                     Card(
                         modifier = Modifier
@@ -244,8 +230,8 @@ fun ProfileScreen(
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     )
                                 }
+
                                 Row {
-                                    // Recurso Nativo Android: Compartir solicitud vía Intent
                                     IconButton(
                                         onClick = {
                                             val sendIntent = Intent().apply {
@@ -267,7 +253,9 @@ fun ProfileScreen(
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
+
                                     Spacer(modifier = Modifier.width(8.dp))
+
                                     IconButton(
                                         onClick = { viewModel.eliminarSolicitudPorId(solicitud.id) },
                                         modifier = Modifier.size(28.dp)
@@ -281,12 +269,15 @@ fun ProfileScreen(
                                     }
                                 }
                             }
+
                             Spacer(modifier = Modifier.height(6.dp))
+
                             Text(
                                 text = solicitud.nombre,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
+
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Email,
@@ -301,6 +292,7 @@ fun ProfileScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Phone,
@@ -315,12 +307,14 @@ fun ProfileScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Propuesta: ${solicitud.mensaje}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Spacer(modifier = Modifier.height(4.dp))
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End,

@@ -28,8 +28,6 @@ class MainActivity : ComponentActivity() {
             APP_MOVILTheme {
                 val viewModel: MainViewModel = viewModel()
                 val navController = rememberNavController()
-
-                // Calculamos el tamaño de la pantalla (Compact, Medium, Expanded)
                 val windowSizeClass = calculateWindowSizeClass(this)
 
                 LaunchedEffect(key1 = Unit) {
@@ -53,7 +51,8 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     NavHost(
                         navController = navController,
-                        startDestination = Screen.Login.route
+                        // Si ya está autenticado en disco, entra directo a Home; si no, al Login
+                        startDestination = if (viewModel.estaAutenticado) Screen.Home.route else Screen.Login.route
                     ) {
                         composable(route = Screen.Login.route) {
                             LoginScreen(viewModel = viewModel)
@@ -64,8 +63,17 @@ class MainActivity : ComponentActivity() {
                         composable(route = Screen.Catalogo.route) {
                             CatalogoScreen(viewModel = viewModel)
                         }
+                        composable(route = Screen.ContactoEmpresa.route) {
+                            ContactoEmpresaScreen(viewModel = viewModel)
+                        }
+                        composable(route = Screen.ContactoCompra.route) {
+                            ContactoCompraScreen(viewModel = viewModel)
+                        }
+                        composable(route = Screen.ContactoVoluntariado.route) {
+                            ContactoVoluntariadoScreen(viewModel = viewModel)
+                        }
                         composable(route = Screen.Contacto.route) {
-                            ContactoScreen(viewModel = viewModel)
+                            ContactoEmpresaScreen(viewModel = viewModel)
                         }
                         composable(route = Screen.Profile.route) {
                             ProfileScreen(navController = navController, viewModel = viewModel)

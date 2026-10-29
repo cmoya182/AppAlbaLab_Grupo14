@@ -20,12 +20,10 @@ import com.example.app_movil.navigation.Screen
 import com.example.app_movil.ui.components.ProductoItem
 import com.example.app_movil.viewmodels.MainViewModel
 
-// Dibuja la pantalla de la Tienda Alba Lab con búsqueda validada y filtro de categorías
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogoScreen(viewModel: MainViewModel) {
 
-    // Lista de productos reales clasificados por su respectivo taller laboral
     val todosLosProductos = listOf(
         Producto(1, "Bolsa Alba Lab", "Bolsa ecológica de tela reutilizable estampada en taller", 3500, "Textil"),
         Producto(2, "Difusor de Varillas 150 ml", "Aromatizador ambiental elaborado por jóvenes del taller", 6500, "Aromas"),
@@ -35,7 +33,6 @@ fun CatalogoScreen(viewModel: MainViewModel) {
 
     val categorias = listOf("Todos", "Aromas", "Textil", "Cerámica")
 
-    // Aplica el filtro combinado de categoría y texto de búsqueda
     val productosFiltrados = todosLosProductos.filter { producto ->
         val coincideCategoria = viewModel.categoriaSeleccionada == "Todos" || producto.categoria == viewModel.categoriaSeleccionada
         val coincideTexto = if (viewModel.busquedaError == null && viewModel.queryBusqueda.isNotBlank()) {
@@ -89,7 +86,7 @@ fun CatalogoScreen(viewModel: MainViewModel) {
                     )
                 }
 
-                // Formulario secundario: Campo de búsqueda con validación reactiva
+                // Campo de búsqueda con validación reactiva
                 OutlinedTextField(
                     value = viewModel.queryBusqueda,
                     onValueChange = { viewModel.onQueryBusquedaChange(it) },
@@ -138,7 +135,6 @@ fun CatalogoScreen(viewModel: MainViewModel) {
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Listado de productos filtrados o mensaje vacío
             if (productosFiltrados.isEmpty()) {
                 item {
                     Text(
@@ -152,7 +148,14 @@ fun CatalogoScreen(viewModel: MainViewModel) {
                 items(productosFiltrados) { producto ->
                     ProductoItem(
                         producto = producto,
-                        onCotizarClick = { viewModel.navigateTo(Screen.Contacto) }
+                        onCotizarClick = {
+                            // Al tocar cotizar, prepara el formulario exclusivo de Compra Solidaria precargando el producto
+                            viewModel.prepararFormulario(
+                                tipo = "Compra Solidaria",
+                                mensajeInicial = "Cotización para: ${producto.nombre} ($${producto.precio})"
+                            )
+                            viewModel.navigateTo(Screen.ContactoCompra)
+                        }
                     )
                 }
             }
