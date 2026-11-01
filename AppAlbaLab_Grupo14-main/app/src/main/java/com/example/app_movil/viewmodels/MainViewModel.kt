@@ -25,14 +25,28 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * ViewModel central de la arquitectura MVVM de la aplicación Alba Lab.
+ *
+ * Responsabilidades técnicas principales:
+ * 1. Persistencia de Sesión Ligera: Almacena el flag de sesión administrativa en SharedPreferences (disco) sin cargar SQLite en cada arranque.
+ * 2. Estado Reactivo de Solicitudes: Expone un StateFlow respaldado por Room que emite actualizaciones automáticas a la UI.
+ * 3. Concurrencia Asíncrona: Despacha operaciones pesadas de escritura/borrado en corrutinas de segundo plano (Dispatchers.IO).
+ * 4. Navegación Declarativa: Emite eventos únicos de navegación mediante SharedFlow a la actividad principal.
+ * 5. Validación de Datos: Verifica sintaxis de correos con expresiones regulares (RegEx) y longitudes mínimas en formularios.
+ */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-
-    // Almacenamiento clave-valor permanente para mantener la sesión iniciada
+    // Almacenamiento clave-valor permanente para mantener la sesión administrativa activa en disco
     private val prefs = application.getSharedPreferences("alba_lab_session_prefs", Context.MODE_PRIVATE)
 
+    // Instancia única de la base de datos Room y referencia a su DAO
     private val database = AppDatabase.getDatabase(application)
     private val solicitudDao = database.solicitudDao()
 
+    /**
+     * Flujo de estado reactivo (StateFlow) que emite la lista completa de solicitudes.
+     * Transforma el Flow del DAO mediante stateIn con un periodo de suscripción activa de 5000ms.
+     */
     val listaSolicitudes: StateFlow<List<SolicitudEntity>> = solicitudDao
         .obtenerTodasLasSolicitudes()
         .stateIn(
@@ -41,6 +55,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList()
         )
 
+    // Flujo compartido para emisión de eventos únicos de navegación (one-time navigation events)
     private val _navigationEvents = MutableSharedFlow<NavigationEvent>()
     val navigationEvents: SharedFlow<NavigationEvent> = _navigationEvents.asSharedFlow()
 
@@ -56,13 +71,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { _navigationEvents.emit(NavigationEvent.NavigateUp) }
     }
 
-    // --- AUTENTICACIÓN INSTITUCIONAL CON PERSISTENCIA EN DISCO ---
+    // =========================================================================
+    // AUTENTICACIÓN INSTITUCIONAL Y CONTROL DE SESIÓN PERMANENTE
+    // =========================================================================
     var estaAutenticado by mutableStateOf(prefs.getBoolean("sesion_activa", false))
         private set
-
     var usuarioLogueado by mutableStateOf(prefs.getString("usuario_logueado", null))
         private set
-
     var loginEmail by mutableStateOf("")
         private set
     var loginEmailError by mutableStateOf<String?>(null)
@@ -92,6 +107,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         passwordVisible = !passwordVisible
     }
 
+    /**
+     * Valida el formulario de inicio de sesión con expresiones regulares y verifica las credenciales demo institucionales.
+     * En caso de éxito, persiste el estado en SharedPreferences y navega al inicio.
+     */
     fun iniciarSesion() {
         var esValido = true
         val regexEmail = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$".toRegex()
@@ -110,13 +129,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 loginEmail = ""
                 loginPassword = ""
                 loginError = null
-
-                // Se almacena en disco para mantenerla activa siempre
                 prefs.edit()
                     .putBoolean("sesion_activa", true)
                     .putString("usuario_logueado", "Administrador Alba Lab")
                     .apply()
-
                 navigateTo(Screen.Home)
             } else {
                 loginPasswordError = "Credenciales incorrectas (Demo: admin@corpaliv.cl / albalab2026)."
@@ -130,12 +146,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             estaAutenticado = true
             usuarioLogueado = "Administrador Alba Lab"
             loginError = null
-
             prefs.edit()
                 .putBoolean("sesion_activa", true)
                 .putString("usuario_logueado", "Administrador Alba Lab")
                 .apply()
-
             navigateTo(Screen.Home)
         } else {
             loginError = "Credenciales incorrectas. Verifique e intente nuevamente."
@@ -146,20 +160,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         navigateTo(Screen.Home)
     }
 
+    /**
+     * Cierra la sesión activa removiendo los valores en disco y redirigiendo a la pantalla de Login.
+     */
     fun cerrarSesion() {
         estaAutenticado = false
         usuarioLogueado = null
-
-        // Se remueve del disco
         prefs.edit()
             .remove("sesion_activa")
             .remove("usuario_logueado")
             .apply()
-
         navigateTo(Screen.Login)
     }
 
-    // --- FILTRADO REACTIVO DEL HISTORIAL DE SOLICITUDES ---
+    // =========================================================================
+    // FILTRADO REACTIVO DEL HISTORIAL DE SOLICITUDES
+    // =========================================================================
     var filtroSolicitudes by mutableStateOf("Todas")
         private set
 
@@ -167,7 +183,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         filtroSolicitudes = nuevoFiltro
     }
 
-    // --- FORMULARIO DE VINCULACIÓN ADAPTATIVO DEDICADO ---
+    // =========================================================================
+    // CAPTURA, VALIDACIÓN Y PERSISTENCIA DE FORMULARIOS
+    // =========================================================================
     var tipoContacto by mutableStateOf("Empresa")
         private set
     var nombre by mutableStateOf("")
@@ -215,9 +233,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun onFotoCapturada(bitmap: Bitmap?) { fotoBitmap = bitmap; imagenUri = null }
     fun eliminarImagen() { imagenUri = null; fotoBitmap = null }
 
+    /**
+     * Valida integralmente los campos de contacto y realiza la inserción asíncrona en SQLite.
+     * Se ejecuta dentro de viewModelScope en el despachador Dispatchers.IO para evitar congelar la UI.
+     */
     fun enviarFormulario() {
         var esValido = true
-
         val minNombre = if (tipoContacto == "Empresa") 4 else 3
         if (nombre.trim().length < minNombre) {
             nombreError = if (tipoContacto == "Empresa") {
@@ -227,18 +248,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             esValido = false
         }
-
         val regexCorreo = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$".toRegex()
         if (!correo.trim().matches(regexCorreo)) {
             correoError = "Ingrese un correo electrónico válido."
             esValido = false
         }
-
         if (telefono.trim().length < 8 || !telefono.all { it.isDigit() || it == '+' }) {
             telefonoError = "Ingrese un número de teléfono válido (mínimo 8 dígitos)."
             esValido = false
         }
-
         val minMensaje = if (tipoContacto == "Compra Solidaria") 5 else 10
         if (mensaje.trim().length < minMensaje) {
             mensajeError = when (tipoContacto) {
@@ -248,11 +266,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             esValido = false
         }
-
         if (esValido) {
             val formatoFecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
             val fechaActual = formatoFecha.format(Date())
-
             val nuevaSolicitud = SolicitudEntity(
                 nombre = nombre.trim(),
                 correo = correo.trim(),
@@ -261,7 +277,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 fecha = fechaActual,
                 tipoContacto = tipoContacto
             )
-
             viewModelScope.launch(Dispatchers.IO) { solicitudDao.insertarSolicitud(nuevaSolicitud) }
             mostrarConfirmacion = true
         }
@@ -273,6 +288,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         eliminarImagen()
     }
 
+    /**
+     * Elimina una solicitud por identificador primario dentro del despachador Dispatchers.IO.
+     */
     fun eliminarSolicitudPorId(id: Int) {
         viewModelScope.launch(Dispatchers.IO) { solicitudDao.eliminarSolicitudPorId(id) }
     }
@@ -281,7 +299,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) { solicitudDao.eliminarTodasLasSolicitudes() }
     }
 
-    // --- ESTADO DE BÚSQUEDA Y FILTRADO DEL CATÁLOGO ---
+    // =========================================================================
+    // CATÁLOGO DE PRODUCTOS: BÚSQUEDA Y FILTRADO
+    // =========================================================================
     var queryBusqueda by mutableStateOf("")
         private set
     var busquedaError by mutableStateOf<String?>(null)
@@ -298,7 +318,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun limpiarBusqueda() { queryBusqueda = ""; busquedaError = null }
     fun onCategoriaSeleccionada(categoria: String) { categoriaSeleccionada = categoria }
 
-    // --- SIMULADOR DE IMPACTO SOCIAL (APORTE CORPORATIVO) ---
+    // =========================================================================
+    // SIMULADOR DE IMPACTO SOCIAL
+    // =========================================================================
     var montoSimulado by mutableStateOf("")
         private set
     var montoSimuladoError by mutableStateOf<String?>(null)
@@ -330,7 +352,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             val insumosTaller = (valor / 5000).toInt()
             val horasTerapia = (valor / 15000).toInt()
-            resultadoImpacto = "Con un aporte de \$$valor CLP financias aproximadamente $insumosTaller kits de insumos para el taller laboral" +
+            resultadoImpacto = "Con un aporte de \\$$valor CLP financias aproximadamente $insumosTaller kits de insumos para el taller laboral" +
                     if (horasTerapia > 0) " y $horasTerapia sesiones de apoyo sociolaboral." else "."
         }
     }
