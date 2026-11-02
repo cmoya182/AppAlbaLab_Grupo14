@@ -500,8 +500,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Vacía todas las solicitudes de la tabla SQLite y limpia la carpeta de fotografías adjuntas.
+     * SEGURIDAD Y CONTROL DE ROLES:
+     * Verifica estrictamente que exista una sesión administrativa activa (estaAutenticado == true)
+     * antes de despachar la corrutina de borrado. Si un usuario en modo invitado intenta ejecutar
+     * esta acción, el método se detiene de inmediato protegiendo la base de datos local y el almacenamiento físico.
      */
     fun limpiarHistorialSolicitudes() {
+        if (!estaAutenticado) return
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val context = getApplication<Application>().applicationContext

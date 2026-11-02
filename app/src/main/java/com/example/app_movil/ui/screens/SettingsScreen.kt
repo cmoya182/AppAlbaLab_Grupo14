@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -56,21 +57,42 @@ import com.example.app_movil.viewmodels.MainViewModel
 
 /**
  * ARCHIVO: SettingsScreen.kt
- * PROPÓSITO: Construye la pestaña de "Impacto y Configuración" (Ajustes), que incluye tres herramientas:
- * 1. El Simulador de Impacto Social (para visibilizar el destino de las donaciones según el Caso CORPALIV).
- * 2. El control de sesión (permite iniciar o cerrar sesión administrativa).
- * 3. El botón para vaciar el historial local de SQLite con un cuadro de confirmación (AlertDialog).
  *
- * ¿CÓMO FUNCIONA EL SIMULADOR DE IMPACTO SOCIAL?:
- * El usuario escribe un monto en pesos chilenos (ej. 25000). El ViewModel valida en tiempo real que
- * solo sean números y que sea al menos $5.000 CLP. Al tocar "Calcular Impacto del Aporte", el ViewModel
- * calcula cuántos kits de taller ($5.000 c/u) y sesiones de apoyo ($15.000 c/u) equivale ese aporte,
- * y esta pantalla despliega el resultado con una animación suave (AnimatedVisibility).
+ * PROPÓSITO:
+ * Construye la pestaña "Impacto y Configuración" (Ajustes), que reúne
+ * las herramientas de impacto social y administración de la aplicación.
  *
- * ¿CON QUÉ ARCHIVOS SE CONECTA?:
- * - MainViewModel.kt: Ejecuta onMontoSimuladoChange(), calcularImpactoSocial(), cerrarSesion() y limpiarHistorialSolicitudes().
- * - AppBottomBar.kt: Muestra la barra inferior con la pestaña "Ajustes" seleccionada.
- */
+ * FUNCIONALIDADES PRINCIPALES:
+ * 1. Simulador de Impacto Social: permite visualizar el posible destino
+ *    de los aportes según los valores referenciales definidos para el Caso CORPALIV.
+ * 2. Control de sesión: permite iniciar y cerrar la sesión administrativa.
+ * 3. Limpieza del historial: permite vaciar las solicitudes almacenadas
+ *    localmente en SQLite, previa confirmación mediante un AlertDialog.
+ *
+ * ¿CÓMO FUNCIONA EL SIMULADOR DE IMPACTO SOCIAL?
+ * El usuario ingresa un monto en pesos chilenos (por ejemplo, $25.000).
+ * El ViewModel valida que el valor contenga únicamente números y que
+ * sea igual o superior a $5.000 CLP.
+ *
+ * Al presionar "Calcular Impacto del Aporte", se calcula cuántos kits
+ * de taller ($5.000 c/u) y sesiones de apoyo ($15.000 c/u) representa
+ * el aporte ingresado. Los resultados se muestran mediante una
+ * animación suave utilizando AnimatedVisibility.
+ *
+ * REGLA DE SEGURIDAD:
+ * La eliminación de solicitudes está restringida exclusivamente a
+ * administradores autenticados (viewModel.estaAutenticado == true).
+ * Los usuarios en modo invitado o donante no pueden eliminar ni
+ * gestionar el historial de solicitudes.
+ *
+ * ¿CON QUÉ ARCHIVOS SE CONECTA?
+ * - MainViewModel.kt: gestiona la validación del monto, el cálculo
+ *   del impacto social, el cierre de sesión y la limpieza del historial.
+ * - AppBottomBar.kt: integra la pestaña "Ajustes" en la barra de
+ *   navegación inferior de la aplicación.
+ **/
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: MainViewModel) {
@@ -143,7 +165,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Bloque 2: Simulador de Impacto Social (Valores referenciales de simulación para el MVP)
+            // Bloque 2: Simulador de Impacto Social
             Text(
                 text = "Simulador de Impacto Social",
                 style = MaterialTheme.typography.titleSmall,
@@ -199,7 +221,6 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         Text("Calcular Impacto del Aporte")
                     }
 
-                    // Animación funcional (IE 2.2.2): hace aparecer suavemente la tarjeta verde con el resultado
                     AnimatedVisibility(
                         visible = viewModel.resultadoImpacto != null,
                         enter = fadeIn(),
@@ -227,7 +248,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Bloque 3: Gestión de Cuenta y Sesión (SharedPreferences)
+            // Bloque 3: Gestión de Cuenta y Sesión
             Text(
                 text = "Cuenta y Sesión",
                 style = MaterialTheme.typography.titleSmall,
@@ -280,7 +301,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Bloque 4: Vaciado completo de la tabla SQLite y archivos de imágenes
+            // Bloque 4: Administración del Historial Local (Exclusivo Administrador)
             Text(
                 text = "Administración del Historial Local",
                 style = MaterialTheme.typography.titleSmall,
@@ -296,28 +317,51 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Permite vaciar las solicitudes guardadas localmente en este dispositivo.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedButton(
-                        onClick = { mostrarDialogoBorrado = true },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Vaciar Historial de Solicitudes")
+                    if (viewModel.estaAutenticado) {
+                        Text(
+                            text = "Permite vaciar las solicitudes guardadas localmente en este dispositivo.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = { mostrarDialogoBorrado = true },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.DeleteSweep, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Vaciar Historial de Solicitudes")
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Función protegida",
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Acceso restringido a colaboradores autenticados.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Inicie sesión como equipo para gestionar o eliminar el historial de solicitudes.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
         }
     }
 
-    // Diálogo de seguridad antes de eliminar todos los registros de Room SQLite
-    if (mostrarDialogoBorrado) {
+    // Diálogo de seguridad antes de eliminar los registros de Room SQLite (Solo si es administrador)
+    if (mostrarDialogoBorrado && viewModel.estaAutenticado) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoBorrado = false },
             title = { Text("¿Vaciar historial?") },
