@@ -1,51 +1,35 @@
-# Aplicación Móvil Alba Lab - CORPALIV
+# Alba Lab - Red Sociolaboral CORPALIV
 
-Proyecto desarrollado para la asignatura **Desarrollo de Aplicaciones Móviles (DSY1105)** - Duoc UC.
+## 1. Nombre del Proyecto
+**Alba Lab - CORPALIV** (Aplicación Móvil de Vinculación Sociolaboral, Tienda Solidaria, Noticias Oficiales y Gestión de Solicitudes).
 
-## Integrantes del Equipo (Grupo 14)
-* **Cristóbal Gabriel Moya Flores**
-* **Virgilio Exequiel Herrera Jara**
+## 2. Integrantes
+- **Cristóbal Gabriel Moya Flores**
+- **Virgilio Exequiel Herrera Jara**
 
----
+## 3. Funcionalidades Principales
+- **Inicio Adaptable (Responsive):** Diseño compatible con pantallas compactas, medianas y expandidas (`WindowSizeClass`) con acceso a Tienda Solidaria, Convenio Empresa/RSE y Voluntariado.
+- **Tienda Solidaria:** Cuadrícula de productos confeccionados en talleres laborales de CORPALIV con búsqueda validada, filtros por categoría y detalle en hoja modal.
+- **Formularios con Recursos Nativos:** Registro de solicitudes con integración nativa de Cámara y Galería y persistencia local en Room SQLite.
+- **Noticias Oficiales CORPALIV (API Externa):** Consumo REST en tiempo real desde `corpaliv.cl` exclusivo para la experiencia de invitados.
+- **Panel Institucional (CRUD Conectado):** Gestión administrativa protegida por rol conectada al microservicio Spring Boot (`GET`, `POST`, `PUT`, `DELETE`).
+- **Simulador de Impacto Social:** Cálculo referencial de kits de insumos y sesiones financiadas según el monto ingresado.
 
-## 1. Descripción del Caso y Propósito
-**Alba Lab** es la iniciativa de inclusión sociolaboral de la corporación **CORPALIV**, enfocada en jóvenes y adultos con discapacidad múltiple y sordoceguera. Esta aplicación móvil permite visibilizar el catálogo de productos elaborados en los talleres laborales, simular el impacto social de aportes financieros y canalizar solicitudes formales de vinculación corporativa, alianzas, voluntariado o compras solidarias.
+## 4. Endpoints Utilizados
+### A) API Externa (Noticias Oficiales CORPALIV)
+- `GET https://corpaliv.cl/wp-json/wp/v2/posts?per_page=10&_embed=true` -> Obtiene las publicaciones reales de CORPALIV.
 
----
+### B) Microservicio Propio en Spring Boot (`alba-lab-api`)
+- `GET /api/solicitudes` -> Lista todas las solicitudes registradas.
+- `POST /api/solicitudes` -> Crea una nueva solicitud enviada desde la app móvil.
+- `PUT /api/solicitudes/{id}` -> Actualiza una solicitud o cambia su estado (`PENDIENTE` / `ATENDIDA`).
+- `DELETE /api/solicitudes/{id}` -> Elimina una solicitud específica por su ID.
 
-## 2. Funcionalidades Implementadas
-* **Autenticación Institucional con Persistencia de Sesión:** Inicio de sesión para colaboradores (`admin@corpaliv.cl` / `albalab2026`) respaldado por `SharedPreferences` para recordar la sesión activa entre reinicios de la aplicación.
-* **Catálogo Interactivo con Filtros y Búsqueda Validada:** Visualización de productos solidarios clasificados por taller (*Aromas*, *Textil*, *Cerámica*) mediante `FilterChip`, barra de búsqueda con validación de caracteres en tiempo real y tarjetas expandibles con animación `animateContentSize`.
-* **Formularios Segmentados y Validados:** Tres flujos independientes (*Convenio Empresa / RSE*, *Cotización Compra Solidaria* con producto fijo bloqueado y *Postulación Voluntariado*). Validación centralizada y desacoplada en `MainViewModel` por cada campo (nombre/empresa, correo con Regex, teléfono numérico y detalle de propuesta) con retroalimentación visual (`isError`, `supportingText` e íconos de estado).
-* **Persistencia Local Relacional con Room (SQLite):** Almacenamiento permanente de las solicitudes enviadas en la tabla `solicitudes_vinculacion`. Incluye lectura reactiva en tiempo real mediante `Flow` y `StateFlow` en el Panel Institucional, filtrado por tipo, borrado individual por `id` y vaciado general del historial.
-* **Acceso a Recursos Nativos (Cámara, Galería e Intent de Compartición):** Captura de fotografías en tiempo real mediante `TakePicturePreview` con solicitud segura de permisos en tiempo de ejecución (`RequestPermission`), selección de imágenes desde el almacenamiento local decodificadas con `BitmapFactory` y compartición nativa de solicitudes mediante `Intent.ACTION_SEND`.
-* **Simulador de Impacto Social:** Herramienta interactiva validada en la sección de Configuración que calcula la equivalencia de un aporte en kits de insumos y sesiones de apoyo sociolaboral, desplegando el resultado mediante `AnimatedVisibility`.
-* **Diseño Adaptable (Responsive) y Microinteracciones:** Soporte automático para pantallas compactas (`WindowWidthSizeClass.Compact`), medianas y expandidas, junto con animaciones de entrada escalonada en `graphicsLayer` y respuesta táctil con física de resorte (`spring`).
+## 5. Pasos para Ejecutar
+1. Abrir el proyecto Spring Boot `alba-lab-api` y ejecutar `AlbalabApiApplication.java` (puerto `8080`).
+2. Abrir el proyecto Android `AppAlbaLab_Grupo14` en Android Studio y sincronizar Gradle (`Sync Now`).
+3. Ejecutar en un emulador Android (API 24 o superior) con conexión a internet.
+4. Para probar el Panel Institucional, iniciar sesión con `admin@corpaliv.cl` / `albalab2026`.
 
----
-
-## 3. Arquitectura del Proyecto (MVVM)
-El código está estructurado siguiendo principios de modularidad y separación de responsabilidades:
-* `data/local/`: Contiene `SolicitudEntity.kt`, `SolicitudDao.kt` y `AppDatabase.kt` (Patrón Singleton para Room SQLite).
-* `model/`: Clases de datos del dominio (`Producto.kt`).
-* `navigation/`: Definición de rutas seguras mediante `sealed class Screen` y eventos en `NavigationEvent.kt`.
-* `ui/components/` y `ui/screens/`: Componentes reutilizables y vistas declarativas en Jetpack Compose (`LoginScreen`, `HomeScreen`, `HomeScreenCompacta`, `HomeScreenMediana`, `HomeScreenExpandida`, `CatalogoScreen`, `ContactoScreen`, `ProfileScreen`, `SettingsScreen`).
-* `ui/theme/`: Configuración visual Material Design 3 con la paleta institucional de CORPALIV (`Color.kt`, `Theme.kt`, `Type.kt`).
-* `viewmodels/`: `MainViewModel.kt` que concentra el estado reactivo de la UI, validaciones y operaciones asíncronas en segundo plano (`Dispatchers.IO`).
-
----
-
-## 4. Planificación y Gestión Colaborativa
-* **Tablero de Planificación en Trello:** https://trello.com/b/kVOrf9cf/proyecto-apps-moviles
-* **Repositorio GitHub:** https://github.com/cmoya182/AppAlbaLab_Grupo14
-
----
-
-## 5. Instrucciones para Ejecutar el Proyecto
-1. Clonar el repositorio:
-   ```bash
-   git clone https://github.com/cmoya182/AppAlbaLab_Grupo14.git
-   ```
-2. Abrir la carpeta raíz del proyecto en **Android Studio**.
-3. Esperar la sincronización automática de dependencias con **Gradle** y **KSP**.
-4. Ejecutar el módulo `app` (`Shift + F10`) en un emulador o dispositivo físico con **Android 7.0 (API 24)** o superior.
+## 6. Captura del APK Firmado y Keystore (.jks)
+*(Cristóbal agregará aquí la captura final de `app-release.apk` y `albalab-key.jks` al cerrar el empaquetado)*
