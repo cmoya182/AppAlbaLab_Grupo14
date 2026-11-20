@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Colores base referenciales del recurso XML (el tema principal se gestiona en ui/theme/Color.kt) -->
     <color name="corpaliv_purple">#FF5B4596</color>
+    <color name="corpaliv_background_light">#FFFAF7F2</color>
+    <color name="corpaliv_background_dark">#FF141118</color>
     <color name="white">#FFFFFFFF</color>
 </resources>

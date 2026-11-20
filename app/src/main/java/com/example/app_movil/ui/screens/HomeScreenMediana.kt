@@ -1,6 +1,5 @@
 package com.example.app_movil.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,39 +8,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
+import androidx.compose.material.icons.outlined.Business
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import com.example.app_movil.R
+import com.example.app_movil.ui.theme.Dimens
 
-/**
- * ARCHIVO: HomeScreenMediana.kt
- * PROPÓSITO: Variante responsiva de la pantalla de inicio para dispositivos de ancho mediano
- * (WindowWidthSizeClass.Medium, como tablets compactas o teléfonos plegables).
- *
- * ¿CÓMO FUNCIONA?:
- * Distribuye las opciones de navegación aprovechando el ancho intermedio, manteniendo acceso
- * directo a los 3 canales: Tienda Solidaria, Convenio Empresa / RSE y Postulación a Voluntariado.
- *
- * ¿CON QUÉ ARCHIVOS SE CONECTA?:
- * - HomeScreen.kt: La invoca automáticamente cuando el ancho de ventana es Medium.
- */
+// Diseño adaptado para pantallas medianas combinando 2 columnas superiores y tarjeta inferior
 @Composable
 fun HomeScreenMediana(
     onCatalogoClick: () -> Unit = {},
@@ -51,86 +30,55 @@ fun HomeScreenMediana(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(28.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Dimens.SpaceLG, vertical = Dimens.SpaceMD),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            modifier = Modifier.padding(bottom = 16.dp)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo CORPALIV Alba Lab",
-                modifier = Modifier
-                    .fillMaxWidth(0.5f)
-                    .padding(16.dp)
-            )
-        }
-        Text(
-            text = "Red Sociolaboral Alba Lab - CORPALIV",
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(0.85f),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
-            Text(
-                text = "Promovemos la autonomía, formación sociolaboral e inclusión efectiva de jóvenes y adultos con discapacidad múltiple y sordoceguera.",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.padding(16.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(20.dp))
+        TarjetaMisionInstitucional(modifier = Modifier.fillMaxWidth(0.88f))
 
-        // Fila superior con Tienda Solidaria y Convenio Empresa / RSE
+        Spacer(modifier = Modifier.height(Dimens.SpaceLG))
+
         Row(
-            modifier = Modifier.fillMaxWidth(0.85f),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.fillMaxWidth(0.88f),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSM)
         ) {
-            Button(
+            TarjetaAccionInteractiva(
+                titulo = "Tienda Solidaria",
+                subtitulo = "Productos de talleres",
+                icono = Icons.Outlined.ShoppingBag,
+                colorIconoFondo = MaterialTheme.colorScheme.primaryContainer,
+                colorIcono = MaterialTheme.colorScheme.primary,
+                alpha = 1f,
+                offsetY = 0f,
                 onClick = onCatalogoClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp)
-            ) {
-                Icon(imageVector = Icons.Default.ShoppingBag, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Explorar Tienda")
-            }
-            OutlinedButton(
+                modifier = Modifier.weight(1f)
+            )
+            TarjetaAccionInteractiva(
+                titulo = "Convenio RSE",
+                subtitulo = "Alianzas empresa",
+                icono = Icons.Outlined.Business,
+                colorIconoFondo = MaterialTheme.colorScheme.secondaryContainer,
+                colorIcono = MaterialTheme.colorScheme.secondary,
+                alpha = 1f,
+                offsetY = 0f,
                 onClick = onEmpresaClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp)
-            ) {
-                Icon(imageVector = Icons.Default.Business, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Convenio Empresa")
-            }
+                modifier = Modifier.weight(1f)
+            )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(Dimens.SpaceSM))
 
-        // Tercer botón de acceso directo a Postulación a Voluntariado
-        OutlinedButton(
+        TarjetaAccionInteractiva(
+            titulo = "Postular a Voluntariado",
+            subtitulo = "Súmate y apoya a los jóvenes en talleres",
+            icono = Icons.Outlined.FavoriteBorder,
+            colorIconoFondo = MaterialTheme.colorScheme.tertiaryContainer,
+            colorIcono = MaterialTheme.colorScheme.tertiary,
+            alpha = 1f,
+            offsetY = 0f,
             onClick = onVoluntariadoClick,
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .height(48.dp)
-        ) {
-            Icon(imageVector = Icons.Default.Favorite, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Postular a Voluntariado")
-        }
+            modifier = Modifier.fillMaxWidth(0.88f)
+        )
     }
 }

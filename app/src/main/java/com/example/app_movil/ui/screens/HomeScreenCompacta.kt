@@ -1,12 +1,15 @@
 package com.example.app_movil.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -15,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,13 +26,13 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.outlined.Business
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -40,180 +44,119 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.app_movil.R
+import com.example.app_movil.ui.components.rememberReduceMotion
+import com.example.app_movil.ui.theme.APP_MOVILTheme
+import com.example.app_movil.ui.theme.Dimens
+import com.example.app_movil.ui.theme.PillShape
 
-/**
- * ARCHIVO: HomeScreenCompacta.kt
- * PROPÓSITO: Construye la vista principal de inicio para teléfonos móviles (WindowWidthSizeClass.Compact).
- *
- * ¿CÓMO FUNCIONA?:
- * 1. Muestra el logo institucional de CORPALIV, el propósito de Alba Lab y 3 tarjetas de acción:
- *    - Explorar Tienda Solidaria (lleva a CatalogoScreen).
- *    - Convenio Empresa / RSE (lleva a ContactoEmpresaScreen).
- *    - Postular a Voluntariado (lleva a ContactoVoluntariadoScreen).
- * 2. Al abrirse la pantalla, ejecuta una animación en cascada (Staggered Animation): cada tarjeta aparece
- *    progresivamente con retardos de 80ms, 200ms y 320ms usando animateFloatAsState y graphicsLayer.
- *    Gracias a graphicsLayer, las tarjetas ya tienen su espacio reservado desde el inicio, evitando que
- *    el logo de arriba dé saltos bruscos (Zero Layout Shift).
- *
- * ¿CON QUÉ ARCHIVOS SE CONECTA?:
- * - HomeScreen.kt: Invoca este archivo cuando detecta una pantalla compacta y le entrega las 3 funciones de clic.
- */
 @Composable
 fun HomeScreenCompacta(
     onCatalogoClick: () -> Unit = {},
     onEmpresaClick: () -> Unit = {},
     onVoluntariadoClick: () -> Unit = {}
 ) {
-    // Variable de estado que pasa a 'true' apenas se dibuja la pantalla para iniciar la cascada de animaciones
-    var animacionIniciada by remember { mutableStateOf(false) }
+    val reduceMotion = rememberReduceMotion()
+
+    // Recuerda si la animación de entrada ya se ejecutó para no repetirla al rotar el teléfono
+    var animacionIniciada by rememberSaveable { mutableStateOf(reduceMotion) }
 
     LaunchedEffect(Unit) {
         animacionIniciada = true
     }
 
-    val duracion = 600
+    val duracion = if (reduceMotion) 0 else 420
     val curvaSuave = FastOutSlowInEasing
 
-    // Animación de entrada de la Tarjeta 1 (delay 80ms): opacidad de 0 a 1 y subida de 22px a 0px
+    // Animación en cascada de las 3 tarjetas de acción
     val alpha1 by animateFloatAsState(
         targetValue = if (animacionIniciada) 1f else 0f,
-        animationSpec = tween(durationMillis = duracion, delayMillis = 80, easing = curvaSuave),
+        animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 50, easing = curvaSuave),
         label = "Alpha1"
     )
     val offsetY1 by animateFloatAsState(
-        targetValue = if (animacionIniciada) 0f else 22f,
-        animationSpec = tween(durationMillis = duracion, delayMillis = 80, easing = curvaSuave),
+        targetValue = if (animacionIniciada) 0f else 16f,
+        animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 50, easing = curvaSuave),
         label = "OffsetY1"
     )
 
-    // Animación de entrada de la Tarjeta 2 (delay 200ms)
     val alpha2 by animateFloatAsState(
         targetValue = if (animacionIniciada) 1f else 0f,
-        animationSpec = tween(durationMillis = duracion, delayMillis = 200, easing = curvaSuave),
+        animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 130, easing = curvaSuave),
         label = "Alpha2"
     )
     val offsetY2 by animateFloatAsState(
-        targetValue = if (animacionIniciada) 0f else 22f,
-        animationSpec = tween(durationMillis = duracion, delayMillis = 200, easing = curvaSuave),
+        targetValue = if (animacionIniciada) 0f else 16f,
+        animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 130, easing = curvaSuave),
         label = "OffsetY2"
     )
 
-    // Animación de entrada de la Tarjeta 3 (delay 320ms)
     val alpha3 by animateFloatAsState(
         targetValue = if (animacionIniciada) 1f else 0f,
-        animationSpec = tween(durationMillis = duracion, delayMillis = 320, easing = curvaSuave),
+        animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 210, easing = curvaSuave),
         label = "Alpha3"
     )
     val offsetY3 by animateFloatAsState(
-        targetValue = if (animacionIniciada) 0f else 22f,
-        animationSpec = tween(durationMillis = duracion, delayMillis = 320, easing = curvaSuave),
+        targetValue = if (animacionIniciada) 0f else 16f,
+        animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 210, easing = curvaSuave),
         label = "OffsetY3"
     )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Dimens.SpaceMD, vertical = Dimens.SpaceXS),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Tarjeta que enmarca el logo oficial de CORPALIV (ubicado en res/drawable/logo.png)
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.padding(bottom = 12.dp)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo CORPALIV Alba Lab",
-                modifier = Modifier
-                    .fillMaxWidth(0.52f)
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
-            )
-        }
+        TarjetaMisionInstitucional()
 
-        Text(
-            text = "Alba Lab",
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.ExtraBold,
-            textAlign = TextAlign.Center
-        )
+        Spacer(modifier = Modifier.height(Dimens.SpaceLG))
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Cuadro informativo con la misión social de CORPALIV
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f)
-            )
-        ) {
-            Text(
-                text = "Promovemos la autonomía y formación sociolaboral de personas con discapacidad múltiple y sordoceguera.",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- TARJETA 1: TIENDA SOLIDARIA ---
         TarjetaAccionInteractiva(
             titulo = "Explorar Tienda Solidaria",
             subtitulo = "Catálogo de productos hechos en talleres",
-            icono = Icons.Default.ShoppingBag,
-            colorContenedor = MaterialTheme.colorScheme.surface,
+            icono = Icons.Outlined.ShoppingBag,
             colorIconoFondo = MaterialTheme.colorScheme.primary,
             colorIcono = MaterialTheme.colorScheme.onPrimary,
-            colorTexto = MaterialTheme.colorScheme.onSurface,
             alpha = alpha1,
             offsetY = offsetY1,
             onClick = onCatalogoClick
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(Dimens.SpaceSM))
 
-        // --- TARJETA 2: CONVENIO EMPRESA / RSE ---
         TarjetaAccionInteractiva(
             titulo = "Convenio Empresa / RSE",
             subtitulo = "Alianzas corporativas y compras por volumen",
-            icono = Icons.Default.Business,
-            colorContenedor = MaterialTheme.colorScheme.surface,
+            icono = Icons.Outlined.Business,
             colorIconoFondo = MaterialTheme.colorScheme.secondary,
             colorIcono = MaterialTheme.colorScheme.onSecondary,
-            colorTexto = MaterialTheme.colorScheme.onSurface,
             alpha = alpha2,
             offsetY = offsetY2,
             onClick = onEmpresaClick
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(Dimens.SpaceSM))
 
-        // --- TARJETA 3: POSTULAR A VOLUNTARIADO ---
         TarjetaAccionInteractiva(
             titulo = "Postular a Voluntariado",
             subtitulo = "Súmate y apoya a los jóvenes en talleres",
-            icono = Icons.Default.Favorite,
-            colorContenedor = MaterialTheme.colorScheme.surface,
+            icono = Icons.Outlined.FavoriteBorder,
             colorIconoFondo = MaterialTheme.colorScheme.tertiary,
             colorIcono = MaterialTheme.colorScheme.onTertiary,
-            colorTexto = MaterialTheme.colorScheme.onSurface,
             alpha = alpha3,
             offsetY = offsetY3,
             onClick = onVoluntariadoClick
@@ -221,34 +164,93 @@ fun HomeScreenCompacta(
     }
 }
 
-/**
- * Componente reutilizable para las tarjetas de acción del Home.
- *
- * ¿CÓMO FUNCIONA LA ANIMACIÓN TÁCTIL?:
- * Usa MutableInteractionSource para detectar el instante en que el usuario apoya el dedo (estaPresionado).
- * Mientras se presiona:
- * 1. La tarjeta se encoge un 5% (escala = 0.95f) con rebote de resorte (spring).
- * 2. Su sombra baja de 3.dp a 1.dp simulando que el botón se hunde físicamente.
- * 3. La flecha de la derecha avanza 6.dp invitando a navegar.
- */
+// Tarjeta de misión institucional con logotipo y degradado de marca
+@Composable
+fun TarjetaMisionInstitucional(modifier: Modifier = Modifier) {
+    val gradienteMarca = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
+            MaterialTheme.colorScheme.surface
+        )
+    )
+
+    Card(
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.ElevationLow),
+        border = BorderStroke(
+            width = Dimens.BorderThin,
+            color = MaterialTheme.colorScheme.outlineVariant
+        ),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(gradienteMarca)
+                .padding(Dimens.SpaceLG),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = Dimens.ElevationLow,
+                border = BorderStroke(Dimens.BorderThin, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "Logo CORPALIV Alba Lab",
+                    modifier = Modifier
+                        .fillMaxWidth(0.46f)
+                        .padding(horizontal = Dimens.SpaceMD, vertical = Dimens.SpaceSM)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Dimens.SpaceMD))
+
+            Surface(
+                shape = PillShape,
+                color = MaterialTheme.colorScheme.primary
+            ) {
+                Text(
+                    text = "INCLUSIÓN SOCIOLABORAL",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(horizontal = Dimens.SpaceSM, vertical = Dimens.SpaceXXS)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Dimens.SpaceXS))
+
+            Text(
+                text = "Promovemos la autonomía y formación laboral de jóvenes y adultos con discapacidad múltiple y sordoceguera.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+// Tarjeta interactiva con efecto táctil de escala y elevación al pulsar
 @Composable
 fun TarjetaAccionInteractiva(
     titulo: String,
     subtitulo: String,
     icono: ImageVector,
-    colorContenedor: Color,
     colorIconoFondo: Color,
     colorIcono: Color,
-    colorTexto: Color,
     alpha: Float,
     offsetY: Float,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    val reduceMotion = rememberReduceMotion()
     val interactionSource = remember { MutableInteractionSource() }
     val estaPresionado by interactionSource.collectIsPressedAsState()
 
     val escala by animateFloatAsState(
-        targetValue = if (estaPresionado) 0.95f else 1.0f,
+        targetValue = if (estaPresionado && !reduceMotion) 0.96f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
@@ -257,23 +259,28 @@ fun TarjetaAccionInteractiva(
     )
 
     val elevacion by animateDpAsState(
-        targetValue = if (estaPresionado) 1.dp else 3.dp,
+        targetValue = if (estaPresionado) Dimens.ElevationNone else Dimens.ElevationLow,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "ElevacionTarjeta"
     )
 
     val desplazamientoFlecha by animateDpAsState(
-        targetValue = if (estaPresionado) 6.dp else 0.dp,
+        targetValue = if (estaPresionado && !reduceMotion) Dimens.SpaceXXS else Dimens.ElevationNone,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "DesplazamientoFlecha"
     )
 
     Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = colorContenedor),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = elevacion),
-        modifier = Modifier
+        border = BorderStroke(
+            width = Dimens.BorderThin,
+            color = MaterialTheme.colorScheme.outlineVariant
+        ),
+        modifier = modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = Dimens.MinTouchTarget)
             .graphicsLayer {
                 this.alpha = alpha
                 this.translationY = offsetY
@@ -289,47 +296,69 @@ fun TarjetaAccionInteractiva(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = Dimens.SpaceMD, vertical = Dimens.SpaceSM),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = CircleShape,
+                shape = PillShape,
                 color = colorIconoFondo,
-                modifier = Modifier.size(46.dp)
+                modifier = Modifier.size(Dimens.IconXL)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icono,
                         contentDescription = null,
                         tint = colorIcono,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(Dimens.IconLG)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(Dimens.SpaceSM))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = titulo,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = colorTexto
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitulo,
                     style = MaterialTheme.typography.bodySmall,
-                    color = colorTexto.copy(alpha = 0.70f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            Spacer(modifier = Modifier.width(Dimens.SpaceXS))
 
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,
-                tint = colorTexto.copy(alpha = 0.4f),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(Dimens.IconSM)
                     .offset(x = desplazamientoFlecha)
+            )
+        }
+    }
+}
+
+// Vista previa de la tarjeta interactiva en modo claro y oscuro
+@Preview(name = "ActionCard Light", uiMode = Configuration.UI_MODE_NIGHT_NO, showBackground = true)
+@Preview(name = "ActionCard Dark", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
+@Composable
+private fun TarjetaAccionPreview() {
+    APP_MOVILTheme {
+        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(Dimens.SpaceMD)) {
+            TarjetaAccionInteractiva(
+                titulo = "Explorar Tienda Solidaria",
+                subtitulo = "Catálogo de productos hechos en talleres",
+                icono = Icons.Outlined.ShoppingBag,
+                colorIconoFondo = MaterialTheme.colorScheme.primary,
+                colorIcono = MaterialTheme.colorScheme.onPrimary,
+                alpha = 1f,
+                offsetY = 0f,
+                onClick = {}
             )
         }
     }

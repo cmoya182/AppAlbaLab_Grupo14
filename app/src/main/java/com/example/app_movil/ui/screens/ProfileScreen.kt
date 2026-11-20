@@ -2,12 +2,19 @@ package com.example.app_movil.ui.screens
 
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,424 +24,614 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Login
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.Business
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.app_movil.data.local.SolicitudEntity
 import com.example.app_movil.navigation.Screen
-import com.example.app_movil.ui.components.AppBottomBar
+import com.example.app_movil.ui.components.AlbaTopBar
+import com.example.app_movil.ui.components.AppMainScaffold
+import com.example.app_movil.ui.theme.Dimens
+import com.example.app_movil.ui.theme.PillShape
+import com.example.app_movil.viewmodels.AuthViewModel
 import com.example.app_movil.viewmodels.MainViewModel
+import com.example.app_movil.viewmodels.SolicitudesViewModel
+import com.example.app_movil.viewmodels.UserRole
 import java.io.File
 
-/**
- * ARCHIVO: ProfileScreen.kt
- * PROPÓSITO: Construye la pantalla del "Panel Institucional", donde el equipo de CORPALIV / Alba Lab
- * revisa y administra las solicitudes enviadas desde los formularios de la aplicación.
- *
- * ¿CÓMO FUNCIONA?:
- * 1. Verifica si el usuario inició sesión (viewModel.estaAutenticado). Si no ha iniciado sesión,
- *    muestra un aviso con candado y un botón que lleva a LoginScreen.
- * 2. Si está autenticado, se suscribe al StateFlow de solicitudes (viewModel.listaSolicitudes.collectAsState()).
- *    Cada vez que se guarda o elimina una solicitud en SQLite, esta pantalla se actualiza sola en tiempo real.
- * 3. Si una solicitud incluye una fotografía guardada en el almacenamiento interno (solicitud.imagenPath),
- *    la decodifica con BitmapFactory.decodeFile() y la muestra dentro de la tarjeta.
- *
- * ¿CON QUÉ ARCHIVOS SE CONECTA?:
- * - MainViewModel.kt: Obtiene la lista de solicitudes, el filtro activo y llama a eliminarSolicitudPorId().
- * - SolicitudEntity.kt: Es la estructura de cada solicitud que se dibuja en la lista (LazyColumn).
- * - AppBottomBar.kt: Muestra la barra de navegación inferior con el ícono "Panel" seleccionado.
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(viewModel: MainViewModel) {
-    val context = LocalContext.current
-
-    // collectAsState() convierte el StateFlow de Room en un estado que Compose redibuja automáticamente
-    val solicitudes by viewModel.listaSolicitudes.collectAsState()
-    val categoriasFiltro = listOf("Todas", "Empresa", "Compra Solidaria", "Voluntariado")
-
-    // Filtra la lista según el chip seleccionado arriba ("Todas", "Empresa", "Compra Solidaria" o "Voluntariado")
-    val solicitudesFiltradas = if (viewModel.filtroSolicitudes == "Todas") {
-        solicitudes
-    } else {
-        solicitudes.filter { it.tipoContacto.equals(viewModel.filtroSolicitudes, ignoreCase = true) }
+fun ProfileScreen(
+    mainViewModel: MainViewModel,
+    authViewModel: AuthViewModel,
+    solicitudesViewModel: SolicitudesViewModel
+) {
+    // Guardia de autorización: redirige fuera del panel si no es administrador
+    if (authViewModel.rolActual != UserRole.ADMINISTRADOR) {
+        LaunchedEffect(Unit) {
+            mainViewModel.navigateTo(Screen.Noticias, authViewModel.rolActual, clearBackStack = true)
+        }
+        return
     }
 
-    Scaffold(
+    val context = LocalContext.current
+    val solicitudes by solicitudesViewModel.listaSolicitudes.collectAsState()
+    val categoriasFiltro = listOf("Todas", "Empresa", "Compra Solidaria", "Voluntariado")
+
+    // Guarda el ID de la solicitud pendiente de borrado para mantener el diálogo abierto tras rotar
+    var solicitudIdAEliminar by rememberSaveable { mutableStateOf<Int?>(null) }
+    val solicitudAEliminar = remember(solicitudIdAEliminar, solicitudes) {
+        solicitudes.find { it.id == solicitudIdAEliminar }
+    }
+
+    // Filtra la lista según la categoría activa
+    val solicitudesFiltradas = if (solicitudesViewModel.filtroSolicitudes == "Todas") {
+        solicitudes
+    } else {
+        solicitudes.filter { it.tipoContacto.equals(solicitudesViewModel.filtroSolicitudes, ignoreCase = true) }
+    }
+
+    // Conteos estadísticos por canal
+    val totalEmpresa = remember(solicitudes) {
+        solicitudes.count { it.tipoContacto.equals("Empresa", ignoreCase = true) }
+    }
+    val totalCompra = remember(solicitudes) {
+        solicitudes.count { it.tipoContacto.equals("Compra Solidaria", ignoreCase = true) }
+    }
+    val totalVoluntariado = remember(solicitudes) {
+        solicitudes.count { it.tipoContacto.equals("Voluntariado", ignoreCase = true) }
+    }
+
+    AppMainScaffold(
+        currentScreen = Screen.Profile,
+        rolActual = authViewModel.rolActual,
+        onNavigate = { mainViewModel.navigateTo(it, authViewModel.rolActual) },
         topBar = {
-            TopAppBar(
-                title = { Text("Panel Institucional", fontWeight = FontWeight.Bold) },
-                actions = {
-                    if (viewModel.estaAutenticado) {
-                        IconButton(onClick = { viewModel.cerrarSesion() }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = "Cerrar Sesión",
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        },
-        bottomBar = {
-            AppBottomBar(
-                currentScreen = Screen.Profile,
-                onNavigate = { viewModel.navigateTo(it) }
+            AlbaTopBar(
+                title = "Panel Institucional",
+                subtitle = "Gestiona las solicitudes recibidas"
             )
         }
     ) { innerPadding ->
-        // --- CASO 1: USUARIO NO AUTENTICADO (MODO INVITADO) ---
-        if (!viewModel.estaAutenticado) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Acceso restringido",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(64.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Área Exclusiva de Equipo Alba Lab",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Para visualizar y gestionar las solicitudes de vinculación recibidas, debe iniciar sesión con sus credenciales de colaborador.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = { viewModel.navigateTo(Screen.Login) },
+        LazyColumn(
+            contentPadding = PaddingValues(
+                top = innerPadding.calculateTopPadding() + Dimens.SpaceXS,
+                bottom = innerPadding.calculateBottomPadding(),
+                start = Dimens.SpaceMD,
+                end = Dimens.SpaceMD
+            ),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSM),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Cabecera con conteos por tipo y filtros
+            item {
+                Card(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    border = BorderStroke(Dimens.BorderThin, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Login, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Iniciar Sesión")
-                }
-            }
-        } else {
-            // --- CASO 2: USUARIO AUTENTICADO (COLABORADOR ALBA LAB) ---
-            // LazyColumn dibuja de manera eficiente solo las tarjetas que caben en la pantalla al hacer scroll
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                item {
-                    // Tarjeta superior que indica qué usuario tiene la sesión iniciada
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.VerifiedUser,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = viewModel.usuarioLogueado ?: "Equipo Alba Lab",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Sesión Activa Permanente - Gestión de Solicitudes",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text(
-                        text = "Filtrar Solicitudes por Tipo:",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Fila de chips interactivos para filtrar solicitudes por categoría
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(Dimens.SpaceMD)
                     ) {
-                        categoriasFiltro.forEach { cat ->
-                            FilterChip(
-                                selected = viewModel.filtroSolicitudes == cat,
-                                onClick = { viewModel.onFiltroSolicitudesChange(cat) },
-                                label = { Text(cat) }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Solicitudes (${solicitudesFiltradas.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    if (solicitudesFiltradas.isEmpty()) {
-                        Text(
-                            text = if (solicitudes.isEmpty())
-                                "No hay solicitudes registradas por el momento."
-                            else
-                                "No hay solicitudes en la categoría '${viewModel.filtroSolicitudes}'.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-                    }
-                }
-
-                // Recorre cada solicitud filtrada y dibuja su tarjeta con datos, fotografía (si tiene) y botones
-                items(solicitudesFiltradas, key = { it.id }) { solicitud ->
-                    // Si la solicitud tiene una ruta de imagen guardada en SQLite, lee el archivo físico desde disco
-                    val bitmapAdjunto = remember(solicitud.imagenPath) {
-                        solicitud.imagenPath?.let { ruta ->
-                            try {
-                                val archivo = File(ruta)
-                                if (archivo.exists()) {
-                                    BitmapFactory.decodeFile(archivo.absolutePath)
-                                } else null
-                            } catch (e: Exception) {
-                                null
-                            }
-                        }
-                    }
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = PillShape,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.size(40.dp)
                             ) {
-                                // Etiqueta que muestra si es "Empresa", "Compra Solidaria" o "Voluntariado"
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
-                                ) {
-                                    Text(
-                                        text = solicitud.tipoContacto,
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.VerifiedUser,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(Dimens.IconMD)
                                     )
                                 }
-
-                                Row {
-                                    // Botón Compartir: usa un Intent nativo de Android (ACTION_SEND) para enviar por WhatsApp/Correo
-                                    IconButton(
-                                        onClick = {
-                                            val sendIntent = Intent().apply {
-                                                action = Intent.ACTION_SEND
-                                                putExtra(
-                                                    Intent.EXTRA_TEXT,
-                                                    "Solicitud Alba Lab [${solicitud.tipoContacto}]\nDe: ${solicitud.nombre}\nCorreo: ${solicitud.correo}\nTeléfono: ${solicitud.telefono}\nMensaje: ${solicitud.mensaje}\nFecha: ${solicitud.fecha}"
-                                                )
-                                                type = "text/plain"
-                                            }
-                                            context.startActivity(Intent.createChooser(sendIntent, "Compartir Solicitud"))
-                                        },
-                                        modifier = Modifier.size(28.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Share,
-                                            contentDescription = "Compartir solicitud",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    // Botón Eliminar: borra la solicitud de SQLite y su archivo de imagen del teléfono
-                                    IconButton(
-                                        onClick = { viewModel.eliminarSolicitudPorId(solicitud.id) },
-                                        modifier = Modifier.size(28.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Eliminar solicitud",
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
                             }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = solicitud.nombre,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Email,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(Dimens.SpaceSM))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = solicitud.correo,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = authViewModel.usuarioLogueado ?: "Equipo Alba Lab",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
-                            }
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Phone,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = solicitud.telefono,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Propuesta: ${solicitud.mensaje}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-
-                            // Si la solicitud tiene una fotografía adjunta válida, la muestra con bordes redondeados
-                            if (bitmapAdjunto != null) {
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Text(
-                                    text = "Fotografía / Documento adjunto:",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Image(
-                                    bitmap = bitmapAdjunto.asImageBitmap(),
-                                    contentDescription = "Imagen adjunta de la solicitud",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(170.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CalendarToday,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = solicitud.fecha,
+                                    text = "${solicitudes.size} solicitudes registradas en total",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(Dimens.SpaceSM))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXS),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            StatMiniCard(
+                                etiqueta = "Empresas",
+                                cantidad = totalEmpresa,
+                                icono = Icons.Outlined.Business,
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatMiniCard(
+                                etiqueta = "Compras",
+                                cantidad = totalCompra,
+                                icono = Icons.Outlined.ShoppingBag,
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatMiniCard(
+                                etiqueta = "Voluntarios",
+                                cantidad = totalVoluntariado,
+                                icono = Icons.Outlined.FavoriteBorder,
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(Dimens.SpaceSM))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXS)
+                ) {
+                    categoriasFiltro.forEach { cat ->
+                        FilterChip(
+                            selected = solicitudesViewModel.filtroSolicitudes == cat,
+                            onClick = { solicitudesViewModel.onFiltroSolicitudesChange(cat) },
+                            shape = PillShape,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            label = {
+                                Text(
+                                    text = cat,
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Lista de solicitudes o vista vacía
+            if (solicitudesFiltradas.isEmpty()) {
+                item {
+                    EstadoVacioPanel(
+                        hayRegistrosTotales = solicitudes.isNotEmpty(),
+                        filtroActual = solicitudesViewModel.filtroSolicitudes
+                    )
+                }
+            } else {
+                items(solicitudesFiltradas, key = { it.id }) { solicitud ->
+                    SolicitudCard(
+                        solicitud = solicitud,
+                        onEnviarCorreo = {
+                            val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:${solicitud.correo}")
+                                putExtra(Intent.EXTRA_SUBJECT, "Contacto Alba Lab - CORPALIV")
+                            }
+                            context.startActivity(Intent.createChooser(emailIntent, "Enviar correo"))
+                        },
+                        onLlamar = {
+                            val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                                data = Uri.parse("tel:${solicitud.telefono}")
+                            }
+                            context.startActivity(dialIntent)
+                        },
+                        onCompartir = {
+                            val sendIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    "Solicitud Alba Lab [${solicitud.tipoContacto}]\nDe: ${solicitud.nombre}\nCorreo: ${solicitud.correo}\nTeléfono: ${solicitud.telefono}\nMensaje: ${solicitud.mensaje}\nFecha: ${solicitud.fecha}"
+                                )
+                                type = "text/plain"
+                            }
+                            context.startActivity(Intent.createChooser(sendIntent, "Compartir solicitud"))
+                        },
+                        onSolicitarEliminar = { solicitudIdAEliminar = solicitud.id }
+                    )
+                }
+            }
+        }
+    }
+
+    // Diálogo de confirmación de borrado individual protegido tras rotación
+    solicitudAEliminar?.let { pendiente ->
+        AlertDialog(
+            onDismissRequest = { solicitudIdAEliminar = null },
+            title = { Text("¿Eliminar solicitud?") },
+            text = {
+                Text("Se eliminará el registro de ${pendiente.nombre} y su imagen adjunta de este dispositivo.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        solicitudesViewModel.eliminarSolicitudPorId(pendiente.id)
+                        solicitudIdAEliminar = null
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { solicitudIdAEliminar = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+// Tarjeta compacta de estadística por categoría
+@Composable
+private fun StatMiniCard(
+    etiqueta: String,
+    cantidad: Int,
+    icono: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = containerColor.copy(alpha = 0.65f),
+        modifier = modifier
+    ) {
+        Column(modifier = Modifier.padding(Dimens.SpaceSM)) {
+            Icon(
+                imageVector = icono,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(Dimens.IconMD)
+            )
+            Spacer(modifier = Modifier.height(Dimens.SpaceXS))
+            Text(
+                text = cantidad.toString(),
+                style = MaterialTheme.typography.headlineSmall,
+                color = contentColor
+            )
+            Text(
+                text = etiqueta,
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor.copy(alpha = 0.85f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+// Estado vacío cuando no hay registros visibles
+@Composable
+private fun EstadoVacioPanel(
+    hayRegistrosTotales: Boolean,
+    filtroActual: String
+) {
+    Card(
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(Dimens.BorderThin, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Dimens.SpaceSM)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimens.SpaceXL)
+        ) {
+            Surface(
+                shape = PillShape,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(Dimens.IconHero)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        imageVector = Icons.Outlined.Inbox,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(Dimens.SpaceMD))
+            Text(
+                text = if (hayRegistrosTotales) {
+                    "Sin solicitudes en \"$filtroActual\""
+                } else {
+                    "Aún no hay solicitudes recibidas"
+                },
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(Dimens.SpaceXXS))
+            Text(
+                text = "Cuando empresas, compradores o voluntarios envíen un formulario, aparecerán aquí al instante.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+// Tarjeta de solicitud con estado de expansión persistente por ID tras rotación
+@Composable
+fun SolicitudCard(
+    solicitud: SolicitudEntity,
+    onEnviarCorreo: () -> Unit,
+    onLlamar: () -> Unit,
+    onCompartir: () -> Unit,
+    onSolicitarEliminar: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Mantiene abierto o cerrado el bloque "Ver más" de cada tarjeta al rotar el teléfono
+    var mensajeExpandido by rememberSaveable(solicitud.id) { mutableStateOf(false) }
+
+    // Decodifica la imagen adjunta desde almacenamiento interno si existe
+    val bitmapAdjunto = remember(solicitud.imagenPath) {
+        solicitud.imagenPath?.let { ruta ->
+            try {
+                val archivo = File(ruta)
+                if (archivo.exists()) BitmapFactory.decodeFile(archivo.absolutePath) else null
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    // Colores diferenciados según el tipo de solicitud
+    val (chipBg, chipFg) = when {
+        solicitud.tipoContacto.equals("Compra Solidaria", ignoreCase = true) ->
+            MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        solicitud.tipoContacto.equals("Voluntariado", ignoreCase = true) ->
+            MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        else ->
+            MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+    }
+
+    Card(
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.ElevationLow),
+        border = BorderStroke(Dimens.BorderThin, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize()
+    ) {
+        Column(modifier = Modifier.padding(Dimens.SpaceMD)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Surface(shape = PillShape, color = chipBg) {
+                    Text(
+                        text = solicitud.tipoContacto,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = chipFg,
+                        modifier = Modifier.padding(horizontal = Dimens.SpaceSM, vertical = Dimens.SpaceXXS)
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onCompartir,
+                        modifier = Modifier.defaultMinSize(
+                            minWidth = Dimens.MinTouchTarget,
+                            minHeight = Dimens.MinTouchTarget
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Share,
+                            contentDescription = "Compartir solicitud",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(Dimens.IconMD)
+                        )
+                    }
+                    IconButton(
+                        onClick = onSolicitarEliminar,
+                        modifier = Modifier.defaultMinSize(
+                            minWidth = Dimens.MinTouchTarget,
+                            minHeight = Dimens.MinTouchTarget
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.DeleteOutline,
+                            contentDescription = "Eliminar solicitud",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(Dimens.IconMD)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(Dimens.SpaceXXS))
+
+            Text(
+                text = solicitud.nombre,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(Dimens.SpaceXS))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXS),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Surface(
+                    shape = PillShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = Dimens.MinTouchTarget)
+                        .clip(PillShape)
+                        .clickable(onClick = onEnviarCorreo)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = Dimens.SpaceSM, vertical = Dimens.SpaceXS)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Email,
+                            contentDescription = "Enviar correo a ${solicitud.correo}",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(Dimens.IconSM)
+                        )
+                        Spacer(modifier = Modifier.width(Dimens.SpaceXXS))
+                        Text(
+                            text = solicitud.correo,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = PillShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier
+                        .defaultMinSize(minHeight = Dimens.MinTouchTarget)
+                        .clip(PillShape)
+                        .clickable(onClick = onLlamar)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = Dimens.SpaceSM, vertical = Dimens.SpaceXS)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Phone,
+                            contentDescription = "Llamar a ${solicitud.telefono}",
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(Dimens.IconSM)
+                        )
+                        Spacer(modifier = Modifier.width(Dimens.SpaceXXS))
+                        Text(
+                            text = solicitud.telefono,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(Dimens.SpaceSM))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+            Spacer(modifier = Modifier.height(Dimens.SpaceSM))
+
+            Text(
+                text = solicitud.mensaje,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = if (mensajeExpandido) Int.MAX_VALUE else 3,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (solicitud.mensaje.length > 110) {
+                TextButton(
+                    onClick = { mensajeExpandido = !mensajeExpandido },
+                    contentPadding = PaddingValues(horizontal = Dimens.SpaceXS),
+                    modifier = Modifier.defaultMinSize(minHeight = Dimens.MinTouchTarget)
+                ) {
+                    Text(
+                        text = if (mensajeExpandido) "Ver menos" else "Ver más",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+
+            if (bitmapAdjunto != null) {
+                Spacer(modifier = Modifier.height(Dimens.SpaceSM))
+                Image(
+                    bitmap = bitmapAdjunto.asImageBitmap(),
+                    contentDescription = "Archivo adjunto de ${solicitud.nombre}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(176.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Dimens.SpaceSM))
+
+            Row(
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarToday,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(Dimens.SpaceXXS))
+                Text(
+                    text = solicitud.fecha,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
