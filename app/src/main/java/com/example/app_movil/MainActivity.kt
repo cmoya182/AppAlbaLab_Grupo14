@@ -46,6 +46,7 @@ import com.example.app_movil.ui.screens.SettingsScreen
 import com.example.app_movil.ui.theme.APP_MOVILTheme
 import com.example.app_movil.viewmodels.AuthViewModel
 import com.example.app_movil.viewmodels.CatalogoViewModel
+import com.example.app_movil.viewmodels.IndicadorViewModel
 import com.example.app_movil.viewmodels.MainViewModel
 import com.example.app_movil.viewmodels.NoticiasViewModel
 import com.example.app_movil.viewmodels.SimuladorViewModel
@@ -55,7 +56,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
 
-    // Devuelve el índice de cada pestaña para determinar la dirección del deslizamiento
+    // Devuelve el índice de cada pestaña para animar el deslizamiento hacia izquierda o derecha
     private fun indiceDeTab(ruta: String?): Int? = when (ruta) {
         Screen.Home.route -> 0
         Screen.Catalogo.route -> 1
@@ -64,7 +65,7 @@ class MainActivity : ComponentActivity() {
         else -> null
     }
 
-    // Convierte la ruta guardada como String (compatible con Bundle) en su objeto Screen
+    // Convierte la ruta guardada en String (compatible con rememberSaveable) a su objeto Screen
     private fun rutaATabScreen(ruta: String): Screen = when (ruta) {
         Screen.Catalogo.route -> Screen.Catalogo
         Screen.Noticias.route -> Screen.Noticias
@@ -79,23 +80,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             APP_MOVILTheme {
-                // Instancias de los ViewModels separados por responsabilidad
+                // Instancias de los ViewModels separados por módulo (incluyendo indicador de UF diaria)
                 val mainViewModel: MainViewModel = viewModel()
                 val authViewModel: AuthViewModel = viewModel()
                 val catalogoViewModel: CatalogoViewModel = viewModel()
                 val noticiasViewModel: NoticiasViewModel = viewModel()
+                val indicadorViewModel: IndicadorViewModel = viewModel()
                 val solicitudesViewModel: SolicitudesViewModel = viewModel()
                 val simuladorViewModel: SimuladorViewModel = viewModel()
 
+                // Controlador de navegación y detector de tamaño de pantalla
                 val navController = rememberNavController()
                 val windowSizeClass = calculateWindowSizeClass(this)
 
-                // Conserva la ruta inicial ante rotaciones y recreación del proceso
+                // Conserva la ruta inicial ante rotaciones y recreación de la actividad
                 val destinoInicial = rememberSaveable {
                     if (authViewModel.estaAutenticado) Screen.Home.route else Screen.Login.route
                 }
 
-                // Observa la ruta activa del NavController para sincronizar la barra flotante única
+                // Observa la ruta activa para mostrar u ocultar la barra inferior flotante
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val rutaActual = navBackStackEntry?.destination?.route
 
@@ -109,13 +112,13 @@ class MainActivity : ComponentActivity() {
                     else -> null
                 }
 
-                // Guarda la última pestaña activa como String en Bundle para sobrevivir rotaciones
+                // Guarda la última pestaña activa como String para sobrevivir rotaciones
                 var ultimaTabRuta by rememberSaveable { mutableStateOf(Screen.Home.route) }
                 if (pantallaTabActual != null) {
                     ultimaTabRuta = pantallaTabActual.route
                 }
 
-                // Escuchador de navegación con control de permisos y preservación de estado entre tabs
+                // Escuchador de eventos de navegación con control de permisos y preservación de estado
                 LaunchedEffect(key1 = Unit) {
                     mainViewModel.navigationEvents.collectLatest { event ->
                         when (event) {
@@ -143,12 +146,13 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Contenedor raíz con el NavHost animado debajo y la barra flotante persistente encima
+                // Contenedor principal con el NavHost animado debajo y la barra flotante fija encima
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
+                        // Mapa de pantallas con transiciones direccionales suaves (slide + fade)
                         NavHost(
                             navController = navController,
                             startDestination = destinoInicial,
@@ -204,19 +208,25 @@ class MainActivity : ComponentActivity() {
                                         fadeOut(animationSpec = tween(200))
                             }
                         ) {
+                            // Pantalla de inicio de sesión
                             composable(route = Screen.Login.route) {
                                 LoginScreen(
                                     mainViewModel = mainViewModel,
                                     authViewModel = authViewModel
                                 )
                             }
+
+                            // Pantalla de inicio con el banner de UF diaria conectado
                             composable(route = Screen.Home.route) {
                                 HomeScreen(
                                     mainViewModel = mainViewModel,
                                     authViewModel = authViewModel,
+                                    indicadorViewModel = indicadorViewModel,
                                     windowSizeClass = windowSizeClass
                                 )
                             }
+
+                            // Pantalla del catálogo de la Tienda Solidaria
                             composable(route = Screen.Catalogo.route) {
                                 CatalogoScreen(
                                     mainViewModel = mainViewModel,
@@ -225,6 +235,8 @@ class MainActivity : ComponentActivity() {
                                     solicitudesViewModel = solicitudesViewModel
                                 )
                             }
+
+                            // Pantalla de noticias oficiales de CORPALIV (para invitados)
                             composable(route = Screen.Noticias.route) {
                                 NoticiasScreen(
                                     mainViewModel = mainViewModel,
@@ -232,6 +244,8 @@ class MainActivity : ComponentActivity() {
                                     noticiasViewModel = noticiasViewModel
                                 )
                             }
+
+                            // Formularios de vinculación (Empresa, Compra Solidaria y Voluntariado)
                             composable(route = Screen.ContactoEmpresa.route) {
                                 ContactoEmpresaScreen(
                                     mainViewModel = mainViewModel,
@@ -250,6 +264,8 @@ class MainActivity : ComponentActivity() {
                                     solicitudesViewModel = solicitudesViewModel
                                 )
                             }
+
+                            // Panel administrativo protegido por rol con redirección si entra un invitado
                             composable(route = Screen.Profile.route) {
                                 if (authViewModel.rolActual == UserRole.ADMINISTRADOR) {
                                     ProfileScreen(
@@ -265,6 +281,8 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
+
+                            // Pantalla de ajustes y simulador de impacto social
                             composable(route = Screen.Settings.route) {
                                 SettingsScreen(
                                     mainViewModel = mainViewModel,
@@ -275,7 +293,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        // Barra flotante persistente alimentada con la pestaña guardada con rememberSaveable
+                        // Barra flotante persistente sobre las 4 pestañas principales
                         AnimatedVisibility(
                             visible = pantallaTabActual != null,
                             enter = slideInVertically(tween(240)) { it } + fadeIn(tween(200)),
