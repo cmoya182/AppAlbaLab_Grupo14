@@ -5,11 +5,12 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-// Cliente Singleton de Retrofit para las APIs externas consumidas por la app
+// Cliente Singleton de Retrofit para las APIs consumidas por la app
 object RetrofitClient {
 
     private const val CORPALIV_BASE_URL = "https://corpaliv.cl/"
     private const val MINDICADOR_BASE_URL = "https://mindicador.cl/"
+    private const val ALBA_LAB_BASE_URL = "http://10.0.2.2:8080/"
 
     // Cliente HTTP compartido con tiempos de espera controlados
     private val okHttpClient: OkHttpClient by lazy {
@@ -37,5 +38,15 @@ object RetrofitClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(MindicadorApiService::class.java)
+    }
+
+    // Servicio Retrofit para el microservicio local alba-lab-api (puerto 8080 en el host)
+    val solicitudApiService: SolicitudApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(ALBA_LAB_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(SolicitudApiService::class.java)
     }
 }
