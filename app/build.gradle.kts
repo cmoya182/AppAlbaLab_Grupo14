@@ -42,6 +42,8 @@ android {
 dependencies {
     testImplementation("io.mockk:mockk:1.13.12")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    testImplementation("io.mockk:mockk:1.13.12")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     implementation("androidx.compose.material3:material3-window-size-class")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
