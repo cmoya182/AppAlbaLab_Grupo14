@@ -14,12 +14,14 @@ class NoticiasRepository(
     companion object {
         // Elimina etiquetas HTML y entidades especiales del texto devuelto por la API
         fun limpiarHtml(textoHtml: String): String {
-            return HtmlCompat.fromHtml(textoHtml, HtmlCompat.FROM_HTML_MODE_LEGACY)
-                .toString()
-                .replace("\uFFFC", "")
-                .trim()
+            val texto = try {
+                HtmlCompat.fromHtml(textoHtml, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
+            } catch (_: RuntimeException) {
+                // Respaldo si Android no está disponible (pruebas unitarias): quita etiquetas HTML
+                textoHtml.replace(Regex("<[^>]*>"), "")
+            }
+            return texto.replace("\uFFFC", "").trim()
         }
-
         // Transforma fecha ISO-8601 del servidor a formato legible dd/MM/yyyy
         fun formatearFechaIso(fechaIso: String): String {
             return try {
