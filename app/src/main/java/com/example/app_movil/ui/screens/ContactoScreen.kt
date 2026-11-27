@@ -2,7 +2,7 @@ package com.example.app_movil.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -52,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -67,8 +68,11 @@ import androidx.core.content.ContextCompat
 import com.example.app_movil.ui.components.AlbaTopBar
 import com.example.app_movil.ui.theme.Dimens
 import com.example.app_movil.ui.theme.PillShape
+import com.example.app_movil.utils.BitmapUtils
 import com.example.app_movil.viewmodels.MainViewModel
 import com.example.app_movil.viewmodels.SolicitudesViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 // Formulario 1: Convenio Empresa / RSE (conserva datos escritos al rotar)
 @Composable
@@ -241,20 +245,25 @@ private fun FormularioBaseScreen(
         if (isGranted) launcherCamara.launch(null)
     }
 
-    // Decodifica la imagen seleccionada desde galería para previsualización
-    val bitmapGaleria = remember(solicitudesViewModel.imagenUri) {
-        solicitudesViewModel.imagenUri?.let { uri ->
-            try {
-                context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                    BitmapFactory.decodeStream(inputStream)
-                }
-            } catch (_: Exception) {
-                null
+    // Decodifica la imagen seleccionada desde galería fuera del hilo principal con downsampling
+    val bitmapGaleria by produceState<Bitmap?>(initialValue = null, key1 = solicitudesViewModel.imagenUri) {
+        val uri = solicitudesViewModel.imagenUri
+        value = if (uri == null) {
+            null
+        } else {
+            withContext(Dispatchers.IO) {
+                BitmapUtils.decodificarUriMuestreada(
+                    context = context,
+                    uri = uri,
+                    reqWidth = 360,
+                    reqHeight = 360
+                )
             }
         }
     }
 
     val imagenAMostrar = solicitudesViewModel.fotoBitmap ?: bitmapGaleria
+    val imageBitmapAMostrar = remember(imagenAMostrar) { imagenAMostrar?.asImageBitmap() }
 
     // Diálogo de confirmación al guardar la solicitud
     if (solicitudesViewModel.mostrarConfirmacion) {
@@ -484,7 +493,7 @@ private fun FormularioBaseScreen(
                         }
 
                         AnimatedVisibility(
-                            visible = imagenAMostrar != null,
+                            visible = imageBitmapAMostrar != null,
                             enter = fadeIn(),
                             exit = fadeOut()
                         ) {
@@ -494,9 +503,9 @@ private fun FormularioBaseScreen(
                                     .fillMaxWidth()
                                     .padding(top = Dimens.SpaceSM)
                             ) {
-                                imagenAMostrar?.let { bmp ->
+                                imageBitmapAMostrar?.let { bmp ->
                                     Image(
-                                        bitmap = bmp.asImageBitmap(),
+                                        bitmap = bmp,
                                         contentDescription = "Foto adjunta",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier

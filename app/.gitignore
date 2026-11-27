@@ -1,1 +1,5 @@
 /build
+*.jks
+*.keystore
+release/*
+!release/app-release.apk

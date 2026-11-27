@@ -1,5 +1,6 @@
 package com.example.app_movil.viewmodels
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,7 +13,8 @@ import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
-// Estados posibles del banner de UF diaria en el Inicio
+// Estados inmutables del banner de UF diaria en el Inicio
+@Immutable
 sealed interface UfUiState {
     data object Cargando : UfUiState
     data class Exito(val valorFormateado: String, val fecha: String) : UfUiState
@@ -54,13 +56,20 @@ class IndicadorViewModel(
     }
 
     companion object {
+        // Reutiliza el formateador por hilo para evitar asignaciones de Locale y DecimalFormat en cada consulta
+        private val formatoClpLocal = object : ThreadLocal<DecimalFormat>() {
+            override fun initialValue(): DecimalFormat {
+                val simbolos = DecimalFormatSymbols(Locale("es", "CL")).apply {
+                    groupingSeparator = '.'
+                    decimalSeparator = ','
+                }
+                return DecimalFormat("#,##0.00", simbolos)
+            }
+        }
+
         // Formatea el número con separador de miles chileno (ej: $38.450,12)
         fun formatearMonedaClp(valor: Double): String {
-            val simbolos = DecimalFormatSymbols(Locale("es", "CL")).apply {
-                groupingSeparator = '.'
-                decimalSeparator = ','
-            }
-            val formato = DecimalFormat("#,##0.00", simbolos)
+            val formato = formatoClpLocal.get() ?: DecimalFormat("#,##0.00")
             return "$${formato.format(valor)}"
         }
 

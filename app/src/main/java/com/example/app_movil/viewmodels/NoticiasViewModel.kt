@@ -1,5 +1,6 @@
 package com.example.app_movil.viewmodels
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,7 +10,8 @@ import com.example.app_movil.data.repository.NoticiasRepository
 import com.example.app_movil.model.Noticia
 import kotlinx.coroutines.launch
 
-// Estados posibles de la pantalla de noticias
+// Estados inmutables de la pantalla de noticias (evita inestabilidad por List<Noticia> en Compose)
+@Immutable
 sealed interface NoticiasUiState {
     data object Cargando : NoticiasUiState
     data class Exito(val noticias: List<Noticia>) : NoticiasUiState

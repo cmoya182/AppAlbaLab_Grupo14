@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.example.app_movil.navigation.Screen
 import com.example.app_movil.ui.components.AlbaTopBar
@@ -83,9 +84,16 @@ fun HomeScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                val irACatalogo = { mainViewModel.navigateTo(Screen.Catalogo, authViewModel.rolActual) }
-                val irAEmpresa = { mainViewModel.navigateTo(Screen.ContactoEmpresa, authViewModel.rolActual) }
-                val irAVoluntariado = { mainViewModel.navigateTo(Screen.ContactoVoluntariado, authViewModel.rolActual) }
+                val rolActual = authViewModel.rolActual
+                val irACatalogo = remember(mainViewModel, rolActual) {
+                    { mainViewModel.navigateTo(Screen.Catalogo, rolActual) }
+                }
+                val irAEmpresa = remember(mainViewModel, rolActual) {
+                    { mainViewModel.navigateTo(Screen.ContactoEmpresa, rolActual) }
+                }
+                val irAVoluntariado = remember(mainViewModel, rolActual) {
+                    { mainViewModel.navigateTo(Screen.ContactoVoluntariado, rolActual) }
+                }
 
                 when (windowSizeClass.widthSizeClass) {
                     WindowWidthSizeClass.Compact -> HomeScreenCompacta(

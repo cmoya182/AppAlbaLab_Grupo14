@@ -10,7 +10,8 @@ object RetrofitClient {
 
     private const val CORPALIV_BASE_URL = "https://corpaliv.cl/"
     private const val MINDICADOR_BASE_URL = "https://mindicador.cl/"
-    private const val ALBA_LAB_BASE_URL = "http://10.0.2.2:8080/"
+    // Con túnel ADB (adb reverse tcp:8080 tcp:8080) usa 127.0.0.1; sin túnel usa 10.0.2.2 (emulador) o la IP local del PC
+    private const val ALBA_LAB_BASE_URL = "http://127.0.0.1:8080/"
 
     // Cliente HTTP compartido con tiempos de espera controlados
     private val okHttpClient: OkHttpClient by lazy {

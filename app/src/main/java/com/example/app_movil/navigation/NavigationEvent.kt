@@ -1,6 +1,9 @@
 package com.example.app_movil.navigation
 
-// Eventos de navegación desacoplados emitidos por MainViewModel hacia MainActivity
+import androidx.compose.runtime.Immutable
+
+// Eventos inmutables de navegación desacoplados emitidos por MainViewModel hacia MainActivity
+@Immutable
 sealed class NavigationEvent {
     // Orden para navegar a una pantalla con opción de limpiar el historial (BackStack)
     data class NavigateTo(

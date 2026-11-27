@@ -67,40 +67,60 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Cabecera visual con el logotipo oficial de CORPALIV Alba Lab
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                shadowElevation = Dimens.ElevationLow
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "Logo CORPALIV Alba Lab",
-                    modifier = Modifier
-                        .size(124.dp)
-                        .padding(Dimens.SpaceMD)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(Dimens.SpaceMD))
-
-            Text(
-                text = "Acceso Colaboradores",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "Red Sociolaboral Alba Lab - CORPALIV",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
+            // Cabecera aislada: escribir en correo/contraseña no recompone el logotipo ni los títulos
+            LoginHeader()
 
             Spacer(modifier = Modifier.height(Dimens.SpaceLG))
 
-            // Tarjeta con formulario de credenciales y acceso como invitado
+            // Tarjeta aislada con formulario de credenciales y acceso como invitado
+            LoginFormCard(
+                mainViewModel = mainViewModel,
+                authViewModel = authViewModel
+            )
+        }
+    }
+}
+
+// Cabecera visual estática de la pantalla de inicio de sesión
+@Composable
+private fun LoginHeader() {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        shadowElevation = Dimens.ElevationLow
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = "Logo CORPALIV Alba Lab",
+            modifier = Modifier
+                .size(124.dp)
+                .padding(Dimens.SpaceMD)
+        )
+    }
+
+    Spacer(modifier = Modifier.height(Dimens.SpaceMD))
+
+    Text(
+        text = "Acceso Colaboradores",
+        style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.onBackground,
+        textAlign = TextAlign.Center
+    )
+
+    Text(
+        text = "Red Sociolaboral Alba Lab - CORPALIV",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center
+    )
+}
+
+// Tarjeta de credenciales aislada para reducir recomposiciones durante la entrada de texto
+@Composable
+private fun LoginFormCard(
+    mainViewModel: MainViewModel,
+    authViewModel: AuthViewModel
+) {
             Card(
                 shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -213,6 +233,4 @@ fun LoginScreen(
                     }
                 }
             }
-        }
-    }
 }

@@ -1,15 +1,26 @@
 *.iml
-.gradle
+.gradle/
+.kotlin/
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
 local.properties
+/.idea/
+.idea/
+.DS_Store
+/build/
+build/
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# Seguridad: llaves de firma y respaldos locales nunca se versionan
+*.jks
+*.keystore
+*_RESPALDO*
+
+# Compilación y base temporal del microservicio Spring Boot
+alba-lab-api/target/
+alba-lab-api/data/
+
+# Permitir únicamente el APK release firmado en app/release/
+app/release/*
+!app/release/app-release.apk

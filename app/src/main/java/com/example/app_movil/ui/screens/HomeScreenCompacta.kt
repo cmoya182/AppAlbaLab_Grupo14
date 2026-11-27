@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -52,6 +51,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -79,35 +79,35 @@ fun HomeScreenCompacta(
     val duracion = if (reduceMotion) 0 else 420
     val curvaSuave = FastOutSlowInEasing
 
-    // Animación en cascada de las 3 tarjetas de acción
-    val alpha1 by animateFloatAsState(
+    // Animación en cascada diferida a fase de dibujo (State<Float> sin recomponer HomeScreenCompacta por frame)
+    val alpha1 = animateFloatAsState(
         targetValue = if (animacionIniciada) 1f else 0f,
         animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 50, easing = curvaSuave),
         label = "Alpha1"
     )
-    val offsetY1 by animateFloatAsState(
+    val offsetY1 = animateFloatAsState(
         targetValue = if (animacionIniciada) 0f else 16f,
         animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 50, easing = curvaSuave),
         label = "OffsetY1"
     )
 
-    val alpha2 by animateFloatAsState(
+    val alpha2 = animateFloatAsState(
         targetValue = if (animacionIniciada) 1f else 0f,
         animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 130, easing = curvaSuave),
         label = "Alpha2"
     )
-    val offsetY2 by animateFloatAsState(
+    val offsetY2 = animateFloatAsState(
         targetValue = if (animacionIniciada) 0f else 16f,
         animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 130, easing = curvaSuave),
         label = "OffsetY2"
     )
 
-    val alpha3 by animateFloatAsState(
+    val alpha3 = animateFloatAsState(
         targetValue = if (animacionIniciada) 1f else 0f,
         animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 210, easing = curvaSuave),
         label = "Alpha3"
     )
-    val offsetY3 by animateFloatAsState(
+    val offsetY3 = animateFloatAsState(
         targetValue = if (animacionIniciada) 0f else 16f,
         animationSpec = tween(durationMillis = duracion, delayMillis = if (reduceMotion) 0 else 210, easing = curvaSuave),
         label = "OffsetY3"
@@ -131,8 +131,8 @@ fun HomeScreenCompacta(
             icono = Icons.Outlined.ShoppingBag,
             colorIconoFondo = MaterialTheme.colorScheme.primary,
             colorIcono = MaterialTheme.colorScheme.onPrimary,
-            alpha = alpha1,
-            offsetY = offsetY1,
+            alphaProvider = { alpha1.value },
+            offsetYProvider = { offsetY1.value },
             onClick = onCatalogoClick
         )
 
@@ -144,8 +144,8 @@ fun HomeScreenCompacta(
             icono = Icons.Outlined.Business,
             colorIconoFondo = MaterialTheme.colorScheme.secondary,
             colorIcono = MaterialTheme.colorScheme.onSecondary,
-            alpha = alpha2,
-            offsetY = offsetY2,
+            alphaProvider = { alpha2.value },
+            offsetYProvider = { offsetY2.value },
             onClick = onEmpresaClick
         )
 
@@ -157,22 +157,26 @@ fun HomeScreenCompacta(
             icono = Icons.Outlined.FavoriteBorder,
             colorIconoFondo = MaterialTheme.colorScheme.tertiary,
             colorIcono = MaterialTheme.colorScheme.onTertiary,
-            alpha = alpha3,
-            offsetY = offsetY3,
+            alphaProvider = { alpha3.value },
+            offsetYProvider = { offsetY3.value },
             onClick = onVoluntariadoClick
         )
     }
 }
 
-// Tarjeta de misión institucional con logotipo y degradado de marca
+// Tarjeta de misión institucional con logotipo y degradado de marca memorizado
 @Composable
 fun TarjetaMisionInstitucional(modifier: Modifier = Modifier) {
-    val gradienteMarca = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
-            MaterialTheme.colorScheme.surface
+    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val gradienteMarca = remember(primaryContainer, surfaceColor) {
+        Brush.verticalGradient(
+            colors = listOf(
+                primaryContainer.copy(alpha = 0.75f),
+                surfaceColor
+            )
         )
-    )
+    }
 
     Card(
         shape = MaterialTheme.shapes.extraLarge,
@@ -232,7 +236,7 @@ fun TarjetaMisionInstitucional(modifier: Modifier = Modifier) {
     }
 }
 
-// Tarjeta interactiva con efecto táctil de escala y elevación al pulsar
+// Tarjeta interactiva con efecto táctil de escala y flecha en fase de dibujo (graphicsLayer)
 @Composable
 fun TarjetaAccionInteractiva(
     titulo: String,
@@ -240,16 +244,18 @@ fun TarjetaAccionInteractiva(
     icono: ImageVector,
     colorIconoFondo: Color,
     colorIcono: Color,
-    alpha: Float,
-    offsetY: Float,
+    alphaProvider: () -> Float = { 1f },
+    offsetYProvider: () -> Float = { 0f },
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val reduceMotion = rememberReduceMotion()
     val interactionSource = remember { MutableInteractionSource() }
     val estaPresionado by interactionSource.collectIsPressedAsState()
+    val density = LocalDensity.current
+    val flechaDesplazamientoPx = remember(density) { with(density) { Dimens.SpaceXXS.toPx() } }
 
-    val escala by animateFloatAsState(
+    val escala = animateFloatAsState(
         targetValue = if (estaPresionado && !reduceMotion) 0.96f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -264,8 +270,8 @@ fun TarjetaAccionInteractiva(
         label = "ElevacionTarjeta"
     )
 
-    val desplazamientoFlecha by animateDpAsState(
-        targetValue = if (estaPresionado && !reduceMotion) Dimens.SpaceXXS else Dimens.ElevationNone,
+    val desplazamientoFlecha = animateFloatAsState(
+        targetValue = if (estaPresionado && !reduceMotion) flechaDesplazamientoPx else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "DesplazamientoFlecha"
     )
@@ -282,10 +288,11 @@ fun TarjetaAccionInteractiva(
             .fillMaxWidth()
             .defaultMinSize(minHeight = Dimens.MinTouchTarget)
             .graphicsLayer {
-                this.alpha = alpha
-                this.translationY = offsetY
-                this.scaleX = escala
-                this.scaleY = escala
+                alpha = alphaProvider()
+                translationY = offsetYProvider()
+                val scale = escala.value
+                scaleX = scale
+                scaleY = scale
             }
             .clickable(
                 interactionSource = interactionSource,
@@ -337,7 +344,7 @@ fun TarjetaAccionInteractiva(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .size(Dimens.IconSM)
-                    .offset(x = desplazamientoFlecha)
+                    .graphicsLayer { translationX = desplazamientoFlecha.value }
             )
         }
     }
@@ -356,8 +363,6 @@ private fun TarjetaAccionPreview() {
                 icono = Icons.Outlined.ShoppingBag,
                 colorIconoFondo = MaterialTheme.colorScheme.primary,
                 colorIcono = MaterialTheme.colorScheme.onPrimary,
-                alpha = 1f,
-                offsetY = 0f,
                 onClick = {}
             )
         }

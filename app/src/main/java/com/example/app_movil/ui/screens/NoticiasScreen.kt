@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.outlined.CalendarToday
@@ -144,8 +145,10 @@ fun NoticiasScreen(
             }
 
             is NoticiasUiState.Exito -> {
-                // Lista desplazable con banner de origen verificado y tarjetas de noticias
+                // Lista desplazable con estado preservado, banner de origen verificado y tarjetas de noticias
+                val listState = rememberLazyListState()
                 LazyColumn(
+                    state = listState,
                     contentPadding = PaddingValues(
                         top = innerPadding.calculateTopPadding() + Dimens.SpaceXS,
                         bottom = innerPadding.calculateBottomPadding(),
@@ -155,7 +158,7 @@ fun NoticiasScreen(
                     verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSM),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    item {
+                    item(key = "banner_corpaliv", contentType = "banner") {
                         Card(
                             shape = MaterialTheme.shapes.large,
                             colors = CardDefaults.cardColors(
@@ -187,7 +190,11 @@ fun NoticiasScreen(
                         }
                     }
 
-                    items(estado.noticias, key = { it.id }) { noticia ->
+                    items(
+                        items = estado.noticias,
+                        key = { it.id },
+                        contentType = { "noticia" }
+                    ) { noticia ->
                         NoticiaCard(
                             noticia = noticia,
                             onAbrirEnlace = {

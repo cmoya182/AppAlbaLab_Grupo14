@@ -49,8 +49,6 @@ fun HomeScreenMediana(
                 icono = Icons.Outlined.ShoppingBag,
                 colorIconoFondo = MaterialTheme.colorScheme.primaryContainer,
                 colorIcono = MaterialTheme.colorScheme.primary,
-                alpha = 1f,
-                offsetY = 0f,
                 onClick = onCatalogoClick,
                 modifier = Modifier.weight(1f)
             )
@@ -60,8 +58,6 @@ fun HomeScreenMediana(
                 icono = Icons.Outlined.Business,
                 colorIconoFondo = MaterialTheme.colorScheme.secondaryContainer,
                 colorIcono = MaterialTheme.colorScheme.secondary,
-                alpha = 1f,
-                offsetY = 0f,
                 onClick = onEmpresaClick,
                 modifier = Modifier.weight(1f)
             )
@@ -75,8 +71,6 @@ fun HomeScreenMediana(
             icono = Icons.Outlined.FavoriteBorder,
             colorIconoFondo = MaterialTheme.colorScheme.tertiaryContainer,
             colorIcono = MaterialTheme.colorScheme.tertiary,
-            alpha = 1f,
-            offsetY = 0f,
             onClick = onVoluntariadoClick,
             modifier = Modifier.fillMaxWidth(0.88f)
         )

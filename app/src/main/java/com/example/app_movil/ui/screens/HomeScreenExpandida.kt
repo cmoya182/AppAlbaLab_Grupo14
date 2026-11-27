@@ -58,8 +58,6 @@ fun HomeScreenExpandida(
                 icono = Icons.Outlined.ShoppingBag,
                 colorIconoFondo = MaterialTheme.colorScheme.primaryContainer,
                 colorIcono = MaterialTheme.colorScheme.primary,
-                alpha = 1f,
-                offsetY = 0f,
                 onClick = onCatalogoClick
             )
 
@@ -71,8 +69,6 @@ fun HomeScreenExpandida(
                 icono = Icons.Outlined.Business,
                 colorIconoFondo = MaterialTheme.colorScheme.secondaryContainer,
                 colorIcono = MaterialTheme.colorScheme.secondary,
-                alpha = 1f,
-                offsetY = 0f,
                 onClick = onEmpresaClick
             )
 
@@ -84,8 +80,6 @@ fun HomeScreenExpandida(
                 icono = Icons.Outlined.FavoriteBorder,
                 colorIconoFondo = MaterialTheme.colorScheme.tertiaryContainer,
                 colorIcono = MaterialTheme.colorScheme.tertiary,
-                alpha = 1f,
-                offsetY = 0f,
                 onClick = onVoluntariadoClick
             )
         }

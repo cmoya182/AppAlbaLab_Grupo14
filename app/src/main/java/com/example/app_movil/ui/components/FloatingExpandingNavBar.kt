@@ -2,12 +2,14 @@ package com.example.app_movil.ui.components
 
 import android.content.res.Configuration
 import android.provider.Settings
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -56,7 +59,8 @@ import com.example.app_movil.ui.theme.Dimens
 import com.example.app_movil.ui.theme.PillShape
 import com.example.app_movil.viewmodels.UserRole
 
-// Modelo interno para definir cada pestaña de la barra inferior
+// Modelo interno inmutable para definir cada pestaña de la barra inferior
+@Immutable
 private data class NavTabItem(
     val screen: Screen,
     val label: String,
@@ -134,13 +138,14 @@ fun FloatingExpandingNavBar(
             ) {
                 tabs.forEach { tab ->
                     val selected = currentScreen == tab.screen
+                    val onTabClick = remember(tab.screen, selected, onNavigate) {
+                        { if (!selected) onNavigate(tab.screen) }
+                    }
                     ExpandingNavPill(
                         tab = tab,
                         selected = selected,
                         reduceMotion = reduceMotion,
-                        onClick = {
-                            if (!selected) onNavigate(tab.screen)
-                        },
+                        onClick = onTabClick,
                         modifier = Modifier.fillMaxHeight()
                     )
                 }
@@ -158,70 +163,66 @@ private fun androidx.compose.foundation.layout.RowScope.ExpandingNavPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Animación orgánica de progreso (0 = solo ícono, 1 = píldora elevada con etiqueta)
-    val expandProgress by animateFloatAsState(
-        targetValue = if (selected) 1f else 0f,
-        animationSpec = if (reduceMotion) {
-            tween(0)
-        } else {
-            spring(
-                dampingRatio = 0.82f,
-                stiffness = Spring.StiffnessMediumLow
-            )
+    // Transición unificada en un único reloj para progreso, elevación y colores de la píldora
+    val transition = updateTransition(targetState = selected, label = "PillTransition_${tab.label}")
+
+    val expandProgress by transition.animateFloat(
+        transitionSpec = {
+            if (reduceMotion) {
+                tween(0)
+            } else {
+                spring(
+                    dampingRatio = 0.85f,
+                    stiffness = Spring.StiffnessMedium
+                )
+            }
         },
         label = "ExpandProgress_${tab.label}"
-    )
+    ) { isSelected -> if (isSelected) 1f else 0f }
 
-    // Elevación animada que da el efecto físico de píldora levantada al activarse
-    val pillElevation by animateDpAsState(
-        targetValue = if (selected) 5.dp else 0.dp,
-        animationSpec = if (reduceMotion) {
-            tween(0)
-        } else {
-            tween(durationMillis = 280)
+    val pillElevation by transition.animateDp(
+        transitionSpec = {
+            if (reduceMotion) tween(0) else tween(durationMillis = 200, easing = FastOutSlowInEasing)
         },
         label = "PillElevation_${tab.label}"
-    )
+    ) { isSelected -> if (isSelected) 4.dp else 0.dp }
 
-    // Transición suave del color de fondo de la píldora activa
-    val pillColor by animateColorAsState(
-        targetValue = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            Color.Transparent
+    val pillColor by transition.animateColor(
+        transitionSpec = {
+            tween(durationMillis = if (reduceMotion) 0 else 200, easing = FastOutSlowInEasing)
         },
-        animationSpec = tween(durationMillis = if (reduceMotion) 0 else 260),
         label = "PillColor_${tab.label}"
-    )
+    ) { isSelected ->
+        if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+    }
 
-    // Transición suave del color del ícono y el texto
-    val contentColor by animateColorAsState(
-        targetValue = if (selected) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+    val contentColor by transition.animateColor(
+        transitionSpec = {
+            tween(durationMillis = if (reduceMotion) 0 else 200, easing = FastOutSlowInEasing)
         },
-        animationSpec = tween(durationMillis = if (reduceMotion) 0 else 260),
         label = "ContentColor_${tab.label}"
-    )
+    ) { isSelected ->
+        if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
-    // Cálculo de peso dinámico para expandir la píldora sin alterar el ancho total de la barra
+    // Cálculo memorizado de desplazamiento y borde sin asignaciones por frame
+    val density = LocalDensity.current
+    val maxSlidePx = remember(density) { with(density) { 8.dp.toPx() } }
     val itemWeight = 1f + (0.95f * expandProgress)
-    val labelAlpha = ((expandProgress - 0.30f) / 0.70f).coerceIn(0f, 1f)
-    val slideOffsetPx = with(LocalDensity.current) { (8.dp * (1f - labelAlpha)).toPx() }
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val borderStroke = remember(selected, primaryColor) {
+        if (selected) {
+            BorderStroke(width = Dimens.BorderThin, color = primaryColor.copy(alpha = 0.22f))
+        } else {
+            null
+        }
+    }
 
     Surface(
         shape = PillShape,
         color = pillColor,
         shadowElevation = pillElevation,
-        border = if (expandProgress > 0.1f) {
-            BorderStroke(
-                width = Dimens.BorderThin,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f * expandProgress)
-            )
-        } else {
-            null
-        },
+        border = borderStroke,
         modifier = modifier
             .weight(itemWeight)
             .defaultMinSize(minWidth = Dimens.MinTouchTarget, minHeight = Dimens.MinTouchTarget)
@@ -247,8 +248,8 @@ private fun androidx.compose.foundation.layout.RowScope.ExpandingNavPill(
                     tint = contentColor,
                     modifier = Modifier.size(Dimens.IconLG)
                 )
-                if (expandProgress > 0.05f) {
-                    Spacer(modifier = Modifier.width(Dimens.SpaceXS * labelAlpha))
+                if (selected || expandProgress > 0.02f) {
+                    Spacer(modifier = Modifier.width(Dimens.SpaceXS))
                     Text(
                         text = tab.label,
                         style = MaterialTheme.typography.labelLarge,
@@ -257,8 +258,9 @@ private fun androidx.compose.foundation.layout.RowScope.ExpandingNavPill(
                         softWrap = false,
                         overflow = TextOverflow.Clip,
                         modifier = Modifier.graphicsLayer {
+                            val labelAlpha = ((expandProgress - 0.30f) / 0.70f).coerceIn(0f, 1f)
                             alpha = labelAlpha
-                            translationX = slideOffsetPx
+                            translationX = maxSlidePx * (1f - labelAlpha)
                         }
                     )
                 }

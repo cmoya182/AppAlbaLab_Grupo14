@@ -1,6 +1,9 @@
 package com.example.app_movil.navigation
 
-// Definición de rutas de navegación y marca de restricción para pantallas administrativas
+import androidx.compose.runtime.Immutable
+
+// Definición inmutable de rutas de navegación y marca de restricción para pantallas administrativas
+@Immutable
 sealed class Screen(
     val route: String,
     val requiereAdministrador: Boolean = false

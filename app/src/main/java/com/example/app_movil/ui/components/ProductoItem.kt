@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -160,13 +161,12 @@ fun ProductoImagenHeader(
             modifier = modifier
         )
     } else {
-        val gradiente = Brush.linearGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.primaryContainer,
-                MaterialTheme.colorScheme.secondaryContainer,
-                MaterialTheme.colorScheme.tertiaryContainer
-            )
-        )
+        val c1 = MaterialTheme.colorScheme.primaryContainer
+        val c2 = MaterialTheme.colorScheme.secondaryContainer
+        val c3 = MaterialTheme.colorScheme.tertiaryContainer
+        val gradiente = remember(c1, c2, c3) {
+            Brush.linearGradient(colors = listOf(c1, c2, c3))
+        }
         Box(
             contentAlignment = Alignment.Center,
             modifier = modifier.background(gradiente)

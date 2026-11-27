@@ -186,125 +186,15 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(Dimens.SpaceLG))
 
-            // Sección 2: Simulador de impacto social
+            // Sección 2: Simulador de impacto social aislado para no recomponer toda la pantalla al escribir
             SettingsSectionTitle("IMPACTO SOCIAL")
-            Card(
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(Dimens.BorderThin, MaterialTheme.colorScheme.outlineVariant),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(Dimens.SpaceMD)) {
-                    SettingsRowItem(
-                        icon = Icons.Outlined.VolunteerActivism,
-                        iconContainer = MaterialTheme.colorScheme.tertiaryContainer,
-                        iconTint = MaterialTheme.colorScheme.tertiary,
-                        title = "Simulador de aporte",
-                        subtitle = "Calcula cuántos insumos y sesiones financia tu contribución"
-                    )
-
-                    Spacer(modifier = Modifier.height(Dimens.SpaceMD))
-
-                    OutlinedTextField(
-                        value = simuladorViewModel.montoSimulado,
-                        onValueChange = { simuladorViewModel.onMontoSimuladoChange(it) },
-                        label = { Text("Monto a simular") },
-                        placeholder = { Text("25000") },
-                        prefix = { Text("$") },
-                        suffix = { Text("CLP") },
-                        leadingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
-                        trailingIcon = {
-                            if (simuladorViewModel.montoSimuladoError != null) {
-                                Icon(
-                                    imageVector = Icons.Outlined.ErrorOutline,
-                                    contentDescription = "Error en monto",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        },
-                        isError = simuladorViewModel.montoSimuladoError != null,
-                        supportingText = simuladorViewModel.montoSimuladoError?.let { errorMsg ->
-                            { Text(text = errorMsg, color = MaterialTheme.colorScheme.error) }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(Dimens.SpaceXS))
-
-                    Button(
-                        onClick = { simuladorViewModel.calcularImpactoSocial() },
-                        shape = PillShape,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = Dimens.MinTouchTarget)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FavoriteBorder,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimens.IconMD)
-                        )
-                        Spacer(modifier = Modifier.width(Dimens.SpaceXS))
-                        Text("Calcular impacto del aporte", style = MaterialTheme.typography.labelLarge)
-                    }
-
-                    AnimatedVisibility(
-                        visible = simuladorViewModel.resultadoImpacto != null,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        val montoNumerico = simuladorViewModel.montoSimulado.toLongOrNull() ?: 0L
-                        val kits = SimuladorViewModel.calcularKitsInsumos(montoNumerico)
-                        val sesiones = SimuladorViewModel.calcularSesionesApoyo(montoNumerico)
-
-                        ImpactoResultadoCard(
-                            cifraPrincipal = if (sesiones > 0) {
-                                "$kits kits · $sesiones sesiones"
-                            } else {
-                                "$kits kits de taller"
-                            },
-                            descripcion = simuladorViewModel.resultadoImpacto ?: "",
-                            modifier = Modifier.padding(top = Dimens.SpaceMD)
-                        )
-                    }
-                }
-            }
+            SimuladorImpactoCard(simuladorViewModel = simuladorViewModel)
 
             Spacer(modifier = Modifier.height(Dimens.SpaceLG))
 
-            // Sección 3: Información institucional
+            // Sección 3: Información institucional estática
             SettingsSectionTitle("ACERCA DE")
-            Card(
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(Dimens.BorderThin, MaterialTheme.colorScheme.outlineVariant),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(Dimens.SpaceMD)) {
-                    SettingsRowItem(
-                        icon = Icons.Outlined.Info,
-                        iconContainer = MaterialTheme.colorScheme.secondaryContainer,
-                        iconTint = MaterialTheme.colorScheme.secondary,
-                        title = "Alba Lab - CORPALIV",
-                        subtitle = "Inclusión social y laboral para jóvenes y adultos con discapacidad múltiple y sordoceguera."
-                    )
-
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.padding(vertical = Dimens.SpaceSM)
-                    )
-
-                    SettingsRowItem(
-                        icon = Icons.Outlined.LocationOn,
-                        iconContainer = MaterialTheme.colorScheme.primaryContainer,
-                        iconTint = MaterialTheme.colorScheme.primary,
-                        title = "Ubicación institucional",
-                        subtitle = "Santiago, Región Metropolitana, Chile"
-                    )
-                }
-            }
+            AcercaDeCard()
 
             // Sección 4: Administración local visible solo para administradores autenticados
             if (esAdmin) {
@@ -383,6 +273,128 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+}
+
+// Tarjeta del simulador aislada para que escribir el monto no recomponga las demás secciones de Ajustes
+@Composable
+private fun SimuladorImpactoCard(simuladorViewModel: SimuladorViewModel) {
+    Card(
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(Dimens.BorderThin, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(Dimens.SpaceMD)) {
+            SettingsRowItem(
+                icon = Icons.Outlined.VolunteerActivism,
+                iconContainer = MaterialTheme.colorScheme.tertiaryContainer,
+                iconTint = MaterialTheme.colorScheme.tertiary,
+                title = "Simulador de aporte",
+                subtitle = "Calcula cuántos insumos y sesiones financia tu contribución"
+            )
+
+            Spacer(modifier = Modifier.height(Dimens.SpaceMD))
+
+            OutlinedTextField(
+                value = simuladorViewModel.montoSimulado,
+                onValueChange = { simuladorViewModel.onMontoSimuladoChange(it) },
+                label = { Text("Monto a simular") },
+                placeholder = { Text("25000") },
+                prefix = { Text("$") },
+                suffix = { Text("CLP") },
+                leadingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
+                trailingIcon = {
+                    if (simuladorViewModel.montoSimuladoError != null) {
+                        Icon(
+                            imageVector = Icons.Outlined.ErrorOutline,
+                            contentDescription = "Error en monto",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                isError = simuladorViewModel.montoSimuladoError != null,
+                supportingText = simuladorViewModel.montoSimuladoError?.let { errorMsg ->
+                    { Text(text = errorMsg, color = MaterialTheme.colorScheme.error) }
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(Dimens.SpaceXS))
+
+            Button(
+                onClick = { simuladorViewModel.calcularImpactoSocial() },
+                shape = PillShape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Dimens.MinTouchTarget)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.FavoriteBorder,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimens.IconMD)
+                )
+                Spacer(modifier = Modifier.width(Dimens.SpaceXS))
+                Text("Calcular impacto del aporte", style = MaterialTheme.typography.labelLarge)
+            }
+
+            AnimatedVisibility(
+                visible = simuladorViewModel.resultadoImpacto != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                val montoNumerico = simuladorViewModel.montoSimulado.toLongOrNull() ?: 0L
+                val kits = SimuladorViewModel.calcularKitsInsumos(montoNumerico)
+                val sesiones = SimuladorViewModel.calcularSesionesApoyo(montoNumerico)
+
+                ImpactoResultadoCard(
+                    cifraPrincipal = if (sesiones > 0) {
+                        "$kits kits · $sesiones sesiones"
+                    } else {
+                        "$kits kits de taller"
+                    },
+                    descripcion = simuladorViewModel.resultadoImpacto ?: "",
+                    modifier = Modifier.padding(top = Dimens.SpaceMD)
+                )
+            }
+        }
+    }
+}
+
+// Tarjeta estática de información institucional para evitar recomposiciones innecesarias
+@Composable
+private fun AcercaDeCard() {
+    Card(
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(Dimens.BorderThin, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(Dimens.SpaceMD)) {
+            SettingsRowItem(
+                icon = Icons.Outlined.Info,
+                iconContainer = MaterialTheme.colorScheme.secondaryContainer,
+                iconTint = MaterialTheme.colorScheme.secondary,
+                title = "Alba Lab - CORPALIV",
+                subtitle = "Inclusión social y laboral para jóvenes y adultos con discapacidad múltiple y sordoceguera."
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                modifier = Modifier.padding(vertical = Dimens.SpaceSM)
+            )
+
+            SettingsRowItem(
+                icon = Icons.Outlined.LocationOn,
+                iconContainer = MaterialTheme.colorScheme.primaryContainer,
+                iconTint = MaterialTheme.colorScheme.primary,
+                title = "Ubicación institucional",
+                subtitle = "Santiago, Región Metropolitana, Chile"
+            )
+        }
     }
 }
 

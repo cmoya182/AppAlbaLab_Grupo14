@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Clear
@@ -93,26 +94,35 @@ fun CatalogoScreen(
         todosLosProductos.find { it.id == productoDetalleId }
     }
 
-    // Filtrado combinado por categoría seleccionada y búsqueda válida
-    val productosFiltrados = todosLosProductos.filter { producto ->
-        val coincideCategoria = catalogoViewModel.categoriaSeleccionada == "Todos" ||
+    // Filtrado combinado memorizado por categoría seleccionada y búsqueda válida
+    val productosFiltrados = remember(
+        todosLosProductos,
+        catalogoViewModel.categoriaSeleccionada,
+        catalogoViewModel.queryBusqueda,
+        catalogoViewModel.busquedaError
+    ) {
+        todosLosProductos.filter { producto ->
+            val coincideCategoria = catalogoViewModel.categoriaSeleccionada == "Todos" ||
                 producto.categoria == catalogoViewModel.categoriaSeleccionada
-        val coincideTexto = if (catalogoViewModel.busquedaError == null && catalogoViewModel.queryBusqueda.isNotBlank()) {
-            producto.nombre.contains(catalogoViewModel.queryBusqueda, ignoreCase = true) ||
+            val coincideTexto = if (catalogoViewModel.busquedaError == null && catalogoViewModel.queryBusqueda.isNotBlank()) {
+                producto.nombre.contains(catalogoViewModel.queryBusqueda, ignoreCase = true) ||
                     producto.descripcion.contains(catalogoViewModel.queryBusqueda, ignoreCase = true)
-        } else {
-            true
+            } else {
+                true
+            }
+            coincideCategoria && coincideTexto
         }
-        coincideCategoria && coincideTexto
     }
 
     // Precarga el producto seleccionado en el formulario de compra y navega hacia él
-    val cotizarProducto: (Producto) -> Unit = { producto ->
-        solicitudesViewModel.prepararFormulario(
-            tipo = "Compra Solidaria",
-            mensajeInicial = "Cotización para: ${producto.nombre} ($${producto.precio})"
-        )
-        mainViewModel.navigateTo(Screen.ContactoCompra, authViewModel.rolActual)
+    val cotizarProducto: (Producto) -> Unit = remember(solicitudesViewModel, mainViewModel, authViewModel.rolActual) {
+        { producto ->
+            solicitudesViewModel.prepararFormulario(
+                tipo = "Compra Solidaria",
+                mensajeInicial = "Cotización para: ${producto.nombre} ($${producto.precio})"
+            )
+            mainViewModel.navigateTo(Screen.ContactoCompra, authViewModel.rolActual)
+        }
     }
 
     AppMainScaffold(
@@ -126,7 +136,9 @@ fun CatalogoScreen(
             )
         }
     ) { innerPadding ->
+        val gridState = rememberLazyGridState()
         LazyVerticalGrid(
+            state = gridState,
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(
                 top = innerPadding.calculateTopPadding() + Dimens.SpaceXS,
@@ -139,7 +151,11 @@ fun CatalogoScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // Cabecera de ancho completo con banner colapsable, buscador y chips de categoría
-            item(span = { GridItemSpan(maxLineSpan) }) {
+            item(
+                key = "header_catalogo",
+                span = { GridItemSpan(maxLineSpan) },
+                contentType = "header"
+            ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Card(
                         shape = MaterialTheme.shapes.medium,
@@ -261,7 +277,11 @@ fun CatalogoScreen(
 
             // Estado vacío o cuadrícula de productos
             if (productosFiltrados.isEmpty()) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
+                item(
+                    key = "estado_vacio_catalogo",
+                    span = { GridItemSpan(maxLineSpan) },
+                    contentType = "empty"
+                ) {
                     EstadoVacioTienda(
                         onLimpiarFiltros = {
                             catalogoViewModel.limpiarBusqueda()
@@ -270,7 +290,11 @@ fun CatalogoScreen(
                     )
                 }
             } else {
-                items(productosFiltrados, key = { it.id }) { producto ->
+                items(
+                    items = productosFiltrados,
+                    key = { it.id },
+                    contentType = { "producto" }
+                ) { producto ->
                     ProductoItem(
                         producto = producto,
                         onCardClick = { productoDetalleId = producto.id },

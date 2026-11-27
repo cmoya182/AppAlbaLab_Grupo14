@@ -19,14 +19,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -52,7 +55,6 @@ import com.example.app_movil.viewmodels.NoticiasViewModel
 import com.example.app_movil.viewmodels.SimuladorViewModel
 import com.example.app_movil.viewmodels.SolicitudesViewModel
 import com.example.app_movil.viewmodels.UserRole
-import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
 
@@ -98,33 +100,13 @@ class MainActivity : ComponentActivity() {
                     if (authViewModel.estaAutenticado) Screen.Home.route else Screen.Login.route
                 }
 
-                // Observa la ruta activa para mostrar u ocultar la barra inferior flotante
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val rutaActual = navBackStackEntry?.destination?.route
-
-                val pantallaTabActual = when (rutaActual) {
-                    Screen.Home.route -> Screen.Home
-                    Screen.Catalogo.route -> Screen.Catalogo
-                    Screen.Noticias.route -> Screen.Noticias
-                    Screen.Profile.route -> Screen.Profile
-                    Screen.Settings.route -> Screen.Settings
-                    null -> if (destinoInicial == Screen.Home.route) Screen.Home else null
-                    else -> null
-                }
-
-                // Guarda la última pestaña activa como String para sobrevivir rotaciones
-                var ultimaTabRuta by rememberSaveable { mutableStateOf(Screen.Home.route) }
-                if (pantallaTabActual != null) {
-                    ultimaTabRuta = pantallaTabActual.route
-                }
-
                 // Escuchador de eventos de navegación con control de permisos y preservación de estado
                 LaunchedEffect(key1 = Unit) {
-                    mainViewModel.navigationEvents.collectLatest { event ->
+                    mainViewModel.navigationEvents.collect { event ->
                         when (event) {
                             is NavigationEvent.NavigateTo -> {
                                 if (event.route.requiereAdministrador && authViewModel.rolActual != UserRole.ADMINISTRADOR) {
-                                    return@collectLatest
+                                    return@collect
                                 }
                                 val esTab = indiceDeTab(event.route.route) != null
                                 navController.navigate(event.route.route) {
@@ -164,15 +146,15 @@ class MainActivity : ComponentActivity() {
                                     origen != null && destino != null -> {
                                         val direccion = if (destino >= origen) 1 else -1
                                         slideInHorizontally(
-                                            animationSpec = tween(300, easing = FastOutSlowInEasing)
-                                        ) { ancho -> (ancho * 0.25f * direccion).toInt() } +
-                                                fadeIn(animationSpec = tween(240, easing = FastOutSlowInEasing))
+                                            animationSpec = tween(240, easing = FastOutSlowInEasing)
+                                        ) { ancho -> (ancho * 0.16f * direccion).toInt() } +
+                                            fadeIn(animationSpec = tween(190, easing = FastOutSlowInEasing))
                                     }
                                     else -> {
                                         slideInHorizontally(
-                                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                                            animationSpec = tween(250, easing = FastOutSlowInEasing)
                                         ) { ancho -> ancho } +
-                                                fadeIn(animationSpec = tween(220))
+                                            fadeIn(animationSpec = tween(190, easing = FastOutSlowInEasing))
                                     }
                                 }
                             },
@@ -183,29 +165,29 @@ class MainActivity : ComponentActivity() {
                                     origen != null && destino != null -> {
                                         val direccion = if (destino >= origen) -1 else 1
                                         slideOutHorizontally(
-                                            animationSpec = tween(300, easing = FastOutSlowInEasing)
-                                        ) { ancho -> (ancho * 0.20f * direccion).toInt() } +
-                                                fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing))
+                                            animationSpec = tween(240, easing = FastOutSlowInEasing)
+                                        ) { ancho -> (ancho * 0.14f * direccion).toInt() } +
+                                            fadeOut(animationSpec = tween(160, easing = FastOutSlowInEasing))
                                     }
                                     else -> {
                                         slideOutHorizontally(
-                                            animationSpec = tween(300, easing = FastOutSlowInEasing)
-                                        ) { ancho -> -(ancho * 0.20f).toInt() } +
-                                                fadeOut(animationSpec = tween(200))
+                                            animationSpec = tween(240, easing = FastOutSlowInEasing)
+                                        ) { ancho -> -(ancho * 0.16f).toInt() } +
+                                            fadeOut(animationSpec = tween(160, easing = FastOutSlowInEasing))
                                     }
                                 }
                             },
                             popEnterTransition = {
                                 slideInHorizontally(
-                                    animationSpec = tween(280, easing = FastOutSlowInEasing)
-                                ) { ancho -> -(ancho * 0.22f).toInt() } +
-                                        fadeIn(animationSpec = tween(220))
+                                    animationSpec = tween(230, easing = FastOutSlowInEasing)
+                                ) { ancho -> -(ancho * 0.16f).toInt() } +
+                                    fadeIn(animationSpec = tween(180, easing = FastOutSlowInEasing))
                             },
                             popExitTransition = {
                                 slideOutHorizontally(
-                                    animationSpec = tween(280, easing = FastOutSlowInEasing)
+                                    animationSpec = tween(230, easing = FastOutSlowInEasing)
                                 ) { ancho -> ancho } +
-                                        fadeOut(animationSpec = tween(200))
+                                    fadeOut(animationSpec = tween(160, easing = FastOutSlowInEasing))
                             }
                         ) {
                             // Pantalla de inicio de sesión
@@ -293,22 +275,69 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        // Barra flotante persistente sobre las 4 pestañas principales
-                        AnimatedVisibility(
-                            visible = pantallaTabActual != null,
-                            enter = slideInVertically(tween(240)) { it } + fadeIn(tween(200)),
-                            exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(160)),
+                        // Barra flotante aislada: observar cambios de ruta aquí evita recomponer el NavHost completo
+                        FloatingNavBarOverlay(
+                            navController = navController,
+                            destinoInicial = destinoInicial,
+                            authViewModel = authViewModel,
+                            mainViewModel = mainViewModel,
+                            rutaATabScreen = ::rutaATabScreen,
                             modifier = Modifier.align(Alignment.BottomCenter)
-                        ) {
-                            FloatingExpandingNavBar(
-                                currentScreen = rutaATabScreen(ultimaTabRuta),
-                                rolActual = authViewModel.rolActual,
-                                onNavigate = { mainViewModel.navigateTo(it, authViewModel.rolActual) }
-                            )
-                        }
+                        )
                     }
                 }
             }
         }
+    }
+}
+
+// Composable aislado para observar el backstack sin provocar recomposición de la raíz ni del NavHost
+@Composable
+private fun FloatingNavBarOverlay(
+    navController: NavHostController,
+    destinoInicial: String,
+    authViewModel: AuthViewModel,
+    mainViewModel: MainViewModel,
+    rutaATabScreen: (String) -> Screen,
+    modifier: Modifier = Modifier
+) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val rutaActual = navBackStackEntry?.destination?.route
+
+    val pantallaTabActual = when (rutaActual) {
+        Screen.Home.route -> Screen.Home
+        Screen.Catalogo.route -> Screen.Catalogo
+        Screen.Noticias.route -> Screen.Noticias
+        Screen.Profile.route -> Screen.Profile
+        Screen.Settings.route -> Screen.Settings
+        null -> if (destinoInicial == Screen.Home.route) Screen.Home else null
+        else -> null
+    }
+
+    var ultimaTabRuta by rememberSaveable { mutableStateOf(Screen.Home.route) }
+    LaunchedEffect(pantallaTabActual) {
+        if (pantallaTabActual != null) {
+            ultimaTabRuta = pantallaTabActual.route
+        }
+    }
+
+    val rolActual = authViewModel.rolActual
+    val onNavigate = remember(mainViewModel, rolActual) {
+        { destino: Screen -> mainViewModel.navigateTo(destino, rolActual) }
+    }
+
+    AnimatedVisibility(
+        visible = pantallaTabActual != null,
+        enter = slideInVertically(tween(220, easing = FastOutSlowInEasing)) { it } +
+            fadeIn(tween(180, easing = FastOutSlowInEasing)),
+        exit = slideOutVertically(tween(180, easing = FastOutSlowInEasing)) { it } +
+            fadeOut(tween(140, easing = FastOutSlowInEasing)),
+        modifier = modifier
+    ) {
+        FloatingExpandingNavBar(
+            currentScreen = rutaATabScreen(ultimaTabRuta),
+            rolActual = rolActual,
+            onNavigate = onNavigate
+        )
     }
 }
