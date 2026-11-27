@@ -14,7 +14,7 @@ Proyecto de la asignatura **DSY1105 — Desarrollo de Aplicaciones Móviles** (E
 - **Virgilio Exequiel Herrera Jara**
 
 ### Planificación (Trello)
-- Tablero del equipo: `[PEGAR_ENLACE_TRELLO_AQUI]`
+- Tablero del equipo: https://trello.com/b/kVOrf9cf/dsy1105-alba-lab-grupo-14
 
 ---
 
